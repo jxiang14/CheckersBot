@@ -133,6 +133,7 @@ class CheckersState:
             has_moves = len(self.get_all_valid_moves(BLACK)) > 0
 
         if not has_pieces or not has_moves:
+            # print(f"Loser: {self.current_player}")
             return RED if self.current_player == BLACK else BLACK
         return 0
     
@@ -140,7 +141,7 @@ class CheckersState:
         return self.get_winner() != 0
     
     def clone(self):
-        clone_state = CheckersState("red" if self.current_player == RED else "black")
+        clone_state = object.__new__(CheckersState)
         clone_state.board = copy.deepcopy(self.board)
         clone_state.red_pieces = self.red_pieces[:]
         clone_state.black_pieces = self.black_pieces[:]
