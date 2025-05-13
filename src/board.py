@@ -14,7 +14,7 @@ BOARD_SIZE = 8
 class CheckersBoard(Widget):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.crown_texture = Image("crown.png").texture
+        self.crown_texture = Image("../images/crown.png").texture
         self.cell_size = min(Window.width, Window.height) / BOARD_SIZE
         self.bind(pos=self.update_board_layout, size=self.update_board_layout)
 
@@ -190,7 +190,7 @@ class CheckersBoard(Widget):
         with self.canvas:
             Color(1, 1, 0, 1)
             self.highlight_rect = Line(rectangle=(x, y, self.cell_size, self.cell_size), width=2)
-            
+
     def remove_highlight(self):
         if self.highlight_rect:
             self.canvas.remove(self.highlight_rect)
