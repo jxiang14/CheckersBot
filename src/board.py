@@ -8,6 +8,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
 from best_move import get_best_move
+import copy
 
 BOARD_SIZE = 8
 
@@ -206,7 +207,7 @@ class CheckersBoard(Widget):
 
             self.cells[(row, col)] = (color, is_king)
             self.selected_piece = (color, is_king)
-            print("moving piece from: ", old_row, " ", old_col)
+            # print("moving piece from: ", old_row, " ", old_col)
             del self.cells[old_row, old_col]
         
         was_capture = abs(row - old_row) == 2
@@ -245,8 +246,9 @@ class CheckersBoard(Widget):
         self.remove_highlight()
         self.repaint()
 
-        self.turn_label.text = f"{self.current_turn.capitalize()}'s Turn"
-        self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
+        if hasattr(self, 'turn_label') and self.turn_label:
+            self.turn_label.text = f"{self.current_turn.capitalize()}'s Turn"
+            self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
 
         if self.current_turn != self.player_color:
             self.computer_move()
@@ -306,3 +308,69 @@ class CheckersBoard(Widget):
             self.show_win_popup(winner=self.current_turn)
             return True
         return False
+
+    # def get_current_player(self):
+    #     return self.current_turn
+    
+    # def get_all_moves(self, player_color):
+    #     actions = []
+    #     for (row, col) in self.cells.keys():
+    #         color = self.cells[(row, col)][0]
+    #         if color == player_color:
+    #             valid_moves = self.get_valid_moves(row, col)
+    #             for move in valid_moves:
+    #                 actions.append(((row, col), move))
+    #     return actions
+    
+    # def apply_move(self, action):
+    #     """
+    #     Returns a deep copy of the board with the move applied.
+    #     """
+    #     from_pos, to_pos = action
+    #     new_board = CheckersBoard()
+    
+    #     # Manually copy over core game state
+    #     new_board.cells = copy.deepcopy(self.cells)
+    #     new_board.current_turn = self.current_turn
+    #     new_board.selected_position = from_pos
+    #     new_board.selected_piece = new_board.cells[from_pos]
+    #     new_board.player_color = self.player_color
+    #     new_board.continue_jump = False
+    #     new_board.further_captures = []
+
+    #     # Optional: temporarily suppress GUI painting if needed
+    #     try:
+    #         new_board.move_piece(to_pos[0], to_pos[1])
+    #     except AttributeError:
+    #         pass  # In case move_piece tries to access GUI elements like turn_label
+
+    #     return new_board
+
+    # def evaluate(self, player):
+    #     score = 0
+    #     for piece_color, is_king in self.cells.values():
+    #         value = 1.5 if is_king else 1
+    #         if piece_color == player:
+    #             score += value
+    #         else:
+    #             score -= value
+    #     return score
+
+
+    def apply_action(self, action):
+        from_pos, to_pos = action
+        new_board = CheckersBoard()
+        new_board.cells = copy.deepcopy(self.cells)
+        new_board.current_turn = self.current_turn
+        new_board.selected_position = from_pos
+        new_board.selected_piece = new_board.cells.get(from_pos)
+        new_board.continue_jump = False
+        new_board.further_captures = []
+        new_board.player_color = self.player_color
+
+        try:
+            new_board.move_piece(to_pos[0], to_pos[1])
+        except Exception as e:
+            print(f"[DEBUG] Simulated move {action} failed:", e)
+            return None
+        return new_board
