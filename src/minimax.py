@@ -80,10 +80,16 @@
 #         return best_action, min_eval
 
 
-
 import copy
+from utils import CheckersState
 
 def get_best_move(board, player_color, depth=3):
+    
+    if player_color == "black":
+        player_color = "red"
+    else:
+        player_color = "black"
+    board = CheckersState(player_color, board)
     best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
     print("[DEBUG] Best action found:", best_action)
     if best_action is None:
@@ -91,69 +97,78 @@ def get_best_move(board, player_color, depth=3):
         return (None, None)
     return best_action
 
+def minimaxAction(board:CheckersState, depth, player_color, alpha, beta, maximizing_player):
+    best_move = None
 
-def minimaxAction(board, depth, player_color, alpha, beta, maximizing_player):
-    if depth == 0 or board.check_win_condition():
-        return None, evaluate(board, player_color)
-
-    current_player = board.current_turn
-    legal_actions = get_all_legal_actions(board, current_player)
-    print("[DEBUG] Current player:", current_player)
-    # print("[DEBUG] Legal actions:", legal_actions)
-
-    if not legal_actions:
-        print("[DEBUG] No legal actions available for", current_player)
-        return None, evaluate(board, player_color)
-
-    # best_action = None
+    if depth == 0 or board.get_winner():
+        eval_score = evaluate(board, player_color)
+        return None, eval_score
+    
+    current_color = player_color if maximizing_player else get_opponent(player_color)
+    all_moves = get_all_moves(board, current_color)
 
     if maximizing_player:
         max_eval = float('-inf')
-        for action in legal_actions:
-            new_board = board.apply_action(action)
+        for from_pos, to_pos in all_moves:
+            new_board = simulate_move(board, from_pos, to_pos, player_color)
             _, eval = minimaxAction(new_board, depth - 1, player_color, alpha, beta, False)
-            print("[DEBUG] Evaluation:", eval)
             if eval > max_eval:
                 max_eval = eval
-                best_action = action
-                # print("[DEBUG] Best action for maximizing player:", best_action)
+                best_move = (from_pos, to_pos)
             alpha = max(alpha, eval)
             if beta <= alpha:
                 break
-        print("[DEBUG] Best action for maximizing player OUTSIDE LOOP:", best_action)
-        return best_action, max_eval
+        return best_move, max_eval
     else:
         min_eval = float('inf')
-        for action in legal_actions:
-            new_board = board.apply_action(action)
+        for from_pos, to_pos in all_moves:
+            new_board = simulate_move(board, from_pos, to_pos, player_color)
             _, eval = minimaxAction(new_board, depth - 1, player_color, alpha, beta, True)
             if eval < min_eval:
                 min_eval = eval
-                best_action = action
-                # print("[DEBUG] Best action for minimizing player:", best_action)
+                best_move = (from_pos, to_pos)
             beta = min(beta, eval)
             if beta <= alpha:
                 break
-        print("[DEBUG] Best action for minimizing player OUTSIDE LOOP:", best_action)
-        return best_action, min_eval
+        return best_move, min_eval
 
 
+def get_opponent(color):
+    return "black" if color == "red" else "red"
 
-def get_all_legal_actions(board, player_color):
-    actions = []
-    for (row, col), (color, _) in board.cells.items():
-        if color == player_color:
-            moves = board.get_valid_moves(row, col)
-            for move in moves:
-                actions.append(((row, col), move))
-    return actions
+def get_all_moves(board, color):
+    # moves = []
+    # for (row, col), (piece_color, _) in board.cells.items():
+    #     if piece_color != color:
+    #         continue
+    #     valid_moves = board.get_valid_moves(row, col)
+    #     for move in valid_moves:
+    #         moves.append(((row, col), move))
+    # return moves
+    return board.get_all_valid_moves(color)
+
+
+def simulate_move(board, from_pos, to_pos, player_color):
+    new_board = board.clone()
+    new_board.make_move((from_pos, to_pos))
+    return new_board
+
 
 def evaluate(board, player_color):
     score = 0
-    for (color, is_king) in board.cells.values():
-        value = 1.5 if is_king else 1
-        if color == player_color:
-            score += value
-        else:
-            score -= value
+
+    for row in range(8):
+        for column in range(8):
+            piece = board.board[row][column]
+            if piece == 0:
+                continue
+            color, is_king = piece
+            if color == player_color:
+                score += 1
+                if is_king:
+                    score += 1
+            else:
+                score -= 1
+                if is_king:
+                    score -= 1
     return score
