@@ -10,7 +10,7 @@ from kivy.clock import Clock
 from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
 agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
-agent.load('checkers_qtable.pkl')  # path to your trained Q-table
+agent.load('checkers_weights.pkl')  # path to your trained Q-table
 def get_best_move(board_widget, player_color):
     """
     Translate the Kivy board (board_widget.cells) into a CheckersState,
