@@ -4,19 +4,7 @@ from utils import CheckersState
 RED = 1
 BLACK = -1
 
-def get_best_move(state, player_color, depth=3):
-    state = CheckersState(player_color, state)
-    best_action, _ = minimaxAction(state, depth, player_color, float('-inf'), float('inf'), True)
-    print("Best action found:", best_action)
-    if best_action is None:
-        print("No best action found, returning None")
-
 def get_best_move(board, player_color, depth=3):
-    
-    if player_color == "black":
-        player_color = "red"
-    else:
-        player_color = "black"
     board = CheckersState(player_color, board)
     best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
     # print("[DEBUG] Best action found:", best_action)
@@ -37,34 +25,34 @@ def minimaxAction(state:CheckersState, depth, player_color, alpha, beta, maximiz
 
     if maximizing_player:
         max_eval = float('-inf')
-        for from_pos, to_pos in all_moves:
-            new_state = simulate_move(state, from_pos, to_pos)
+        for move in all_moves:
+            new_state = simulate_move(state, move)
             
             #new code
             if depth == 1:
                 # print("depth is currently ", depth)
-                eval = evaluate_move(new_state, (from_pos, to_pos), player_color)
-                print(f"Evaluating move {from_pos} -> {to_pos} with eval_move: {eval}")
+                eval = evaluate_move(new_state, move, player_color)
+                print(f"Evaluating move {move} with eval_move: {eval}")
             else:
                 # print("depth is currently ", depth)
                 _, eval = minimaxAction(new_state, depth - 1, player_color, alpha, beta, False)
-                print(f"Evaluating move {from_pos} -> {to_pos} with minimax: {eval}")
+                print(f"Evaluating move {move} with minimax: {eval}")
             
             if eval > max_eval:
                 max_eval = eval
-                best_move = (from_pos, to_pos)
+                best_move = move
             alpha = max(alpha, eval)
             if beta <= alpha:
                 break
         return best_move, max_eval
     else:
         min_eval = float('inf')
-        for from_pos, to_pos in all_moves:
-            new_state = simulate_move(state, from_pos, to_pos)
+        for move in all_moves:
+            new_state = simulate_move(state, move)
             
             #new code
             if depth == 1:
-                eval = evaluate_move(new_state, (from_pos, to_pos), player_color)
+                eval = evaluate_move(new_state, move, player_color)
                 # print(f"Evaluating move {from_pos} -> {to_pos} with eval_move: {eval}")
             else:
                 _, eval = minimaxAction(new_state, depth - 1, player_color, alpha, beta, True)
@@ -72,7 +60,7 @@ def minimaxAction(state:CheckersState, depth, player_color, alpha, beta, maximiz
             
             if eval < min_eval:
                 min_eval = eval
-                best_move = (from_pos, to_pos)
+                best_move = move
             beta = min(beta, eval)
             if beta <= alpha:
                 break
@@ -94,9 +82,9 @@ def get_all_moves(state, color):
     return state.get_all_valid_moves(color)
 
 
-def simulate_move(state, from_pos, to_pos):
+def simulate_move(state, move):
     new_state = state.clone()
-    new_state.make_move((from_pos, to_pos))
+    new_state.make_move(move)
     return new_state
 
 
@@ -134,9 +122,10 @@ def evaluate(state, player_color):
 
 def evaluate_move(state, move, player_color):
     score = 0
-    if state.can_capture_single_piece_if_moved(move):
-        score += 2
-    if state.can_capture_double_piece_if_moved(move):
+    if len(move) == 2:
+        if state.can_capture_single_piece_if_moved(move):
+            score += 2
+    if len(move) > 2:
         score += 5
     if state.can_become_king(move):
         score += 3
