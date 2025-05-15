@@ -1,5 +1,5 @@
 import copy
-from utils import CheckersState
+from checkers_state import CheckersState
 
 RED = 1
 BLACK = -1
