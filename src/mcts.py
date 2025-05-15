@@ -86,7 +86,7 @@ class MCTS:
                 best_score = score
                 best_move = move
         return best_move
-    
+
     def can_be_captured_if_moved(self, move, state):
         (r1, c1), (r2, c2) = move
         if state.current_player == RED:
