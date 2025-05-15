@@ -9,7 +9,7 @@ class Node:
         self.visits = 0
         self.wins = 0
         self.untried_moves = game_state.get_all_valid_moves(game_state.current_player)
-        self.player = parent.player * -1 if parent else -1 * game_state.current_player
+        self.player = -1 * game_state.current_player
 
     def is_fully_expanded(self):
         return len(self.untried_moves) == 0
@@ -31,8 +31,9 @@ class Node:
 
     def backpropagate(self, result):
         self.visits += 1
-        if result == self.player:
-            self.wins += 1
+        self.wins += result
+        # if result == self.player:
+        #     self.wins += 1
         # print(f"Backpropagating: {self.move}, Color: {self.player} Result: {result}, Wins: {self.wins}, Visits: {self.visits}")
         if self.parent:
             self.parent.backpropagate(result)

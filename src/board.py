@@ -7,24 +7,26 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from qlearning import QLearningAgent, CheckersState, RED, BLACK
+from best_move import get_best_move
+import copy
+# from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
-agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
-agent.load('checkers_qtable.pkl')  # path to your trained Q-table
-def get_best_move(board_widget, player_color):
-    """
-    Translate the Kivy board (board_widget.cells) into a CheckersState,
-    ask the Q-agent for its action, and return the move tuple.
-    """
-    # Build a CheckersState from the current widget
-    # we rely on the board_from_kivy_board constructor path:
-    state = CheckersState(player_color, board=board_widget)
-    # Ask the agent for its preferred move
-    move = agent.choose_action(state)
-    if move is None:
-        return (None, None)
-    # move is ((r_from, c_from), (r_to, c_to))
-    return move
+# agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
+# agent.load('checkers_qtable.pkl')  # path to your trained Q-table
+# def get_best_move(board_widget, player_color):
+#     """
+#     Translate the Kivy board (board_widget.cells) into a CheckersState,
+#     ask the Q-agent for its action, and return the move tuple.
+#     """
+#     # Build a CheckersState from the current widget
+#     # we rely on the board_from_kivy_board constructor path:
+#     state = CheckersState(player_color, board=board_widget)
+#     # Ask the agent for its preferred move
+#     move = agent.choose_action(state)
+#     if move is None:
+#         return (None, None)
+#     # move is ((r_from, c_from), (r_to, c_to))
+#     return move
 
 BOARD_SIZE = 8
 
@@ -215,11 +217,13 @@ class CheckersBoard(Widget):
     
     def move_piece(self, row, col):
         old_row, old_col = self.selected_position
+        just_made_king = False
         if (row, col) not in self.cells:
             color, is_king = self.selected_piece
 
             if not is_king and (color == "red" and row == BOARD_SIZE - 1) or (color == "black" and row == 0):
                 is_king = True
+                just_made_king = True
 
             self.cells[(row, col)] = (color, is_king)
             self.selected_piece = (color, is_king)
@@ -239,7 +243,7 @@ class CheckersBoard(Widget):
             if abs(r - row) == 2:
                 self.further_captures.append((r, c))
 
-        if was_capture and self.further_captures:
+        if was_capture and self.further_captures and not just_made_king:
             self.continue_jump = True
             self.remove_highlight()
             self.selected_position = (row, col)
@@ -272,18 +276,7 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        # from_pos, to_pos = get_best_move(self, self.player_color)
-        # if not from_pos or not to_pos:
-        #     print("No valid moves available for the computer.")
-        #     return
-        # # mimic a touch: select piece, then move it
-        # self.selected_position = from_pos
-        # self.selected_piece = self.cells[from_pos]
-        # # unpack destination
-        # dest_row, dest_col = to_pos
-        # self.move_piece(dest_row, dest_col)
-        comp_color = "red" if self.player_color == "black" else "black"
-        from_pos, to_pos = get_best_move(self, comp_color)
+        from_pos, to_pos = get_best_move(self, self.current_turn)
 
         print("Computer move from: ", from_pos, " to: ", to_pos)
         if from_pos and to_pos:
