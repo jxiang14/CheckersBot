@@ -5,10 +5,11 @@ RED = 1
 BLACK = -1
 
 class MCTS:
-    def __init__(self, game_state, iteration_limit=1500):
+    def __init__(self, game_state, move_number, iteration_limit=1500):
         self.root = Node(game_state)
         self.iteration_limit = iteration_limit
         self.epsilon = 1.0
+        self.move_number = move_number
 
     def run(self):
         sim_avg = 0
@@ -34,7 +35,7 @@ class MCTS:
     def _simulate(self, game_state):
         state = game_state.clone()
         iterations = 0
-        while not state.is_terminal() and iterations < 750:
+        while not state.is_terminal() and iterations < 200 - 2 * self.move_number:
             moves = state.get_all_valid_moves(state.current_player)
             if not moves:
                 break
@@ -50,11 +51,13 @@ class MCTS:
         winner = state.get_winner()
         # print(f"Winner: {winner}, Root player: {root_player}")
         if winner == root_player:
+            # return 1 * (750 - iterations)/750
             return 1
         elif winner == 0:
             print("Draw")
             return 0
         else:
+            # return -1 * (750 - iterations)/750
             return -1
 
     def _best_move(self):
@@ -64,8 +67,8 @@ class MCTS:
             for grandchild in child.children:
                 print(f"Child: {child.move}, Grandchild: {grandchild.move}, Wins: {grandchild.wins}, Visits: {grandchild.visits}, Win rate: {grandchild.wins / grandchild.visits:.2f}")
             # print(f"Move: {child.move}, Wins: {child.wins}, Visits: {child.visits}, Win rate: {child.wins / child.visits:.2f}")
-        # best_child = max(self.root.children, key=lambda c: c.visits)
-        best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.2 * c.visits)
+        best_child = max(self.root.children, key=lambda c: c.visits)
+        # best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.2 * c.visits)
         return best_child.move
     
     def _evaluate_moves_heuristically(self, moves, state):
