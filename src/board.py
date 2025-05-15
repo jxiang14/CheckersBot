@@ -7,7 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from best_move import get_best_move
+from minimax import get_best_move
 import copy
 # from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
@@ -276,13 +276,16 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        from_pos, to_pos = get_best_move(self, self.current_turn)
+        move = get_best_move(self, self.current_turn)
 
-        print("Computer move from: ", from_pos, " to: ", to_pos)
-        if from_pos and to_pos:
-            self.selected_position = from_pos
-            self.selected_piece = self.cells[from_pos]
-            self.move_piece(to_pos[0], to_pos[1])
+        print("Computer move ", move)
+        if move:
+            for i in range(len(move)-1):
+                from_pos = move[i]
+                to_pos = move[i + 1]
+                self.selected_position = from_pos
+                self.selected_piece = self.cells[from_pos]
+                self.move_piece(to_pos[0], to_pos[1])
 
     def get_valid_moves(self, row, col):
         valid_moves = []
