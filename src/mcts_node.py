@@ -12,9 +12,15 @@ class Node:
         self.player = -1 * game_state.current_player
 
     def is_fully_expanded(self):
+        """
+        Check if all possible moves from this node have been tried.
+        """
         return len(self.untried_moves) == 0
 
     def best_child(self, c_param=1.41):
+        """
+        Select the child with the highest UCT value.
+        """
         choices_weights = [
             (child.wins / child.visits) + c_param * math.sqrt(math.log(self.visits) / child.visits)
             for child in self.children
@@ -22,6 +28,9 @@ class Node:
         return self.children[choices_weights.index(max(choices_weights))]
 
     def expand(self):
+        """
+        Expand the node by adding a new child node for one of the untried moves.
+        """
         move = self.untried_moves.pop()
         next_state = self.game_state.clone()
         next_state = next_state.make_move(move)
@@ -30,13 +39,16 @@ class Node:
         return child_node
 
     def backpropagate(self, result):
+        """
+        Backpropagate the result of a simulation up the tree.
+        """
         self.visits += 1
         self.wins += result
-        # if result == self.player:
-        #     self.wins += 1
-        # print(f"Backpropagating: {self.move}, Color: {self.player} Result: {result}, Wins: {self.wins}, Visits: {self.visits}")
         if self.parent:
             self.parent.backpropagate(result)
 
     def is_terminal_node(self):
+        """
+        Check if the node is a terminal node (game over).
+        """
         return self.game_state.is_terminal()

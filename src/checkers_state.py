@@ -9,13 +9,16 @@ class CheckersState:
         self.red_pieces = []
         self.black_pieces = []
         self.must_continue_from = None
-        self.current_player = self.player_from_kivy_player(player)    # 1 for RED, 2 for BLACK
+        self.current_player = self.player_from_kivy_player(player)
         if board is not None:
             self.board = self.board_from_kivy_board(board)
         else:
             self.board = self.create_board()
 
     def player_from_kivy_player(self, player):
+        """
+        Convert the player color from Kivy representation to internal representation.
+        """
         if player == "red":
             return RED
         elif player == "black":
@@ -24,6 +27,9 @@ class CheckersState:
             raise ValueError("Invalid player color")
 
     def board_from_kivy_board(self, board):
+        """
+        Convert the Kivy board representation to the internal representation.
+        """
         new_board = [[0] * 8 for _ in range(8)]
         for (row, col) in board.cells.keys():
             color, king = board.cells[(row, col)]
@@ -36,6 +42,9 @@ class CheckersState:
         return new_board
 
     def create_board(self):
+        """
+        Create the initial board with pieces in their starting positions.
+        """
         board = [[0] * 8 for _ in range(8)]
         for row in range(3):
             for col in range(8):
@@ -50,11 +59,17 @@ class CheckersState:
         return board
     
     def get_directions(self, color, king):
+        """
+        Get the possible directions for a piece based on its color and whether it's a king.
+        """
         if king:
             return [(-1, -1), (-1, 1), (1, -1), (1, 1)]
         return [(1, -1), (1, 1)] if color == RED else [(-1, -1), (-1, 1)]
     
     def explore_jumps(self, r, c, visited, color, king):
+        """
+        Explore all possible jumps from the current position (r, c) for a piece of the given color.
+        """
         jumps = []
         for dr, dc in self.get_directions(color, king):
             mid_r, mid_c = r + dr, c + dc
@@ -82,9 +97,15 @@ class CheckersState:
         return jumps
     
     def in_bounds(self, r, c):
+        """
+        Check if the given row and column are within the bounds of the board.
+        """
         return 0 <= r < BOARD_SIZE and 0 <= c < BOARD_SIZE
     
     def get_valid_moves(self, row, col):
+        """
+        Get all valid moves for a piece at the given row and column.
+        """
         valid_moves = []
         color, king = self.board[row][col]
 
@@ -102,6 +123,10 @@ class CheckersState:
         return valid_moves
 
     def get_all_valid_moves(self, player):
+        """
+        Get all valid moves for the current player.
+        If there are capturing moves available, only return those.
+        """
         valid_moves = []
         pieces = self.red_pieces if player == RED else self.black_pieces
         # if self.must_continue_from:
@@ -121,14 +146,14 @@ class CheckersState:
         return valid_moves
 
     def make_move(self, move):
+        """
+        Make a move on the board and update the state.
+        """
         for i in range(len(move) - 1):
             piece, new_position = move[i], move[i + 1]
             row, col = piece
             new_row, new_col = new_position
             color, king = self.board[row][col]
-            # print(f"Moving {color} from {piece} to {new_position}")
-            # print(f"Red pieces: {self.red_pieces}")
-            # print(f"Black pieces: {self.black_pieces}")
             if self.current_player == RED:
                 self.red_pieces.remove(piece)
                 self.red_pieces.append(new_position)
@@ -151,22 +176,11 @@ class CheckersState:
             self.board[new_row][new_col] = (self.current_player, True)
         self.current_player = BLACK if self.current_player == RED else RED
         return self
-    
-    def check_further_captures(self, row, col):
-        moves = self.get_valid_moves(row, col)
-        if moves:
-            for move in moves:
-                if move[0] == (row, col):
-                    self.make_move(move)
-                    break
-
-    # def switch_player(self):
-    #     self.must_continue_from = None
-    #     self.current_player = BLACK if self.current_player == RED else RED
 
     def get_winner(self):
-        # has_pieces = False
-        # has_moves = False
+        """
+        Check if the game is over and return the winner.
+        """
         if self.current_player == RED:
             has_pieces = len(self.red_pieces) > 0
             has_moves = len(self.get_all_valid_moves(RED)) > 0
@@ -175,16 +189,19 @@ class CheckersState:
             has_moves = len(self.get_all_valid_moves(BLACK)) > 0
 
         if not has_pieces or not has_moves:
-            # print(f"Loser: {self.current_player}")
-            # print(len(self.red_pieces), len(self.black_pieces))
-            # print(len(self.get_all_valid_moves(RED)), len(self.get_all_valid_moves(BLACK)))
             return RED if self.current_player == BLACK else BLACK
         return 0
     
     def is_terminal(self):
+        """
+        Check if the game is over.
+        """
         return self.get_winner() != 0
     
     def clone(self):
+        """
+        Create a deep copy of the current state.
+        """
         clone_state = object.__new__(CheckersState)
         clone_state.board = copy.deepcopy(self.board)
         clone_state.red_pieces = copy.deepcopy(self.red_pieces)
@@ -194,10 +211,16 @@ class CheckersState:
         return clone_state
     
     def can_capture_single_piece_if_moved(self, move):
+        """
+        Check if a single piece can be captured if moved.
+        """
         (r1, c1), (r2, c2) = move
         return abs(r2 - r1) == 2
     
     def can_be_captured_if_moved(self, move):
+        """
+        Check if the piece can be captured if moved.
+        """
         (r1, c1), (r2, c2) = move[-2], move[-1]
         if self.current_player == RED:
             opponent_pieces = self.black_pieces
@@ -214,6 +237,9 @@ class CheckersState:
         return False
     
     def can_become_king(self, move):
+        """
+        Check if the piece can become a king.
+        """
         r2, c2 = move[-1]
         if self.current_player == RED and r2 == 7:
             return True
@@ -222,6 +248,9 @@ class CheckersState:
         return False
     
     def can_be_at_edge(self, move):
+        """
+        Check if the piece can be at the edge of the board.
+        """
         r2, c2 = move[-1]
         if r2 == 0 or r2 == 7 or c2 == 0 or c2 == 7:
             return True
