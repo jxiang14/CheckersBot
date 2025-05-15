@@ -10,6 +10,8 @@ from kivy.clock import Clock
 from best_move import get_best_move
 import time
 import copy
+from qlearning import QLearningAgent
+from utils import CheckersState
 
 # from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
