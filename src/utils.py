@@ -196,13 +196,9 @@ class CheckersState:
     def can_capture_single_piece_if_moved(self, move):
         (r1, c1), (r2, c2) = move
         return abs(r2 - r1) == 2
-
-    def can_capture_double_piece_if_moved(self, move):
-        (r1, c1), (r2, c2) = move
-        return abs(r2 - r1) == 4
     
     def can_be_captured_if_moved(self, move):
-        (r1, c1), (r2, c2) = move
+        (r1, c1), (r2, c2) = move[-2], move[-1]
         if self.current_player == RED:
             opponent_pieces = self.black_pieces
             dirs = [(-1, -1), (-1, 1)]
@@ -218,7 +214,7 @@ class CheckersState:
         return False
     
     def can_become_king(self, move):
-        (r1, c1), (r2, c2) = move
+        r2, c2 = move[-1]
         if self.current_player == RED and r2 == 7:
             return True
         elif self.current_player == BLACK and r2 == 0:
@@ -226,7 +222,7 @@ class CheckersState:
         return False
     
     def can_be_at_edge(self, move):
-        (r1, c1), (r2, c2) = move
+        r2, c2 = move[-1]
         if r2 == 0 or r2 == 7 or c2 == 0 or c2 == 7:
             return True
         return False
