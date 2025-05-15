@@ -7,7 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from best_move import get_best_move
+from minimax import get_best_move
 import copy
 
 BOARD_SIZE = 8
@@ -256,7 +256,7 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        from_pos, to_pos = get_best_move(self, self.current_turn)
+        from_pos, to_pos = get_best_move(self, self.player_color)
         print("Computer move from: ", from_pos, " to: ", to_pos)
         if from_pos and to_pos:
             self.selected_position = from_pos
@@ -355,22 +355,3 @@ class CheckersBoard(Widget):
     #         else:
     #             score -= value
     #     return score
-
-
-    def apply_action(self, action):
-        from_pos, to_pos = action
-        new_board = CheckersBoard()
-        new_board.cells = copy.deepcopy(self.cells)
-        new_board.current_turn = self.current_turn
-        new_board.selected_position = from_pos
-        new_board.selected_piece = new_board.cells.get(from_pos)
-        new_board.continue_jump = False
-        new_board.further_captures = []
-        new_board.player_color = self.player_color
-
-        try:
-            new_board.move_piece(to_pos[0], to_pos[1])
-        except Exception as e:
-            print(f"[DEBUG] Simulated move {action} failed:", e)
-            return None
-        return new_board
