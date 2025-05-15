@@ -41,7 +41,7 @@ class CheckersBoard(Widget):
         self.selected_piece = None
         self.selected_position = None
         self.highlight_rect = None
-        self.current_turn = "red"
+        self.current_turn = "black"
         self.continue_jump = False
         self.further_captures = []
         self.player_color = None
@@ -70,7 +70,7 @@ class CheckersBoard(Widget):
     def choose_color(self, color, popup):
         self.player_color = color
         popup.dismiss()
-        if color == "black":
+        if color == "red":
             self.computer_move()
 
     def create_color_selection_popup(self):
@@ -286,6 +286,7 @@ class CheckersBoard(Widget):
 
     def get_valid_moves(self, row, col):
         valid_moves = []
+        capture_moves = []
         color, king = self.cells.get((row, col))
         
         if color == "red":
@@ -309,7 +310,9 @@ class CheckersBoard(Widget):
                     landing_row, landing_col = new_row + dr, new_col + dc
                     if 0 <= landing_row < BOARD_SIZE and 0 <= landing_col < BOARD_SIZE and (landing_row, landing_col) not in self.cells:
                         valid_moves.append((landing_row, landing_col))
-        
+                        capture_moves.append((landing_row, landing_col))
+        if len(capture_moves) > 0:
+            return capture_moves
         return valid_moves
 
     

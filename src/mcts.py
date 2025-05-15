@@ -65,7 +65,7 @@ class MCTS:
                 print(f"Child: {child.move}, Grandchild: {grandchild.move}, Wins: {grandchild.wins}, Visits: {grandchild.visits}, Win rate: {grandchild.wins / grandchild.visits:.2f}")
             # print(f"Move: {child.move}, Wins: {child.wins}, Visits: {child.visits}, Win rate: {child.wins / child.visits:.2f}")
         # best_child = max(self.root.children, key=lambda c: c.visits)
-        best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.0 * c.visits)
+        best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.2 * c.visits)
         return best_child.move
     
     def _evaluate_moves_heuristically(self, moves, state):
