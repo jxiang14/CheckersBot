@@ -7,7 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from minimax import get_best_move
+from best_move import get_best_move
 import copy
 
 BOARD_SIZE = 8
@@ -199,11 +199,13 @@ class CheckersBoard(Widget):
     
     def move_piece(self, row, col):
         old_row, old_col = self.selected_position
+        just_made_king = False
         if (row, col) not in self.cells:
             color, is_king = self.selected_piece
 
             if not is_king and (color == "red" and row == BOARD_SIZE - 1) or (color == "black" and row == 0):
                 is_king = True
+                just_made_king = True
 
             self.cells[(row, col)] = (color, is_king)
             self.selected_piece = (color, is_king)
@@ -223,7 +225,7 @@ class CheckersBoard(Widget):
             if abs(r - row) == 2:
                 self.further_captures.append((r, c))
 
-        if was_capture and self.further_captures:
+        if was_capture and self.further_captures and not just_made_king:
             self.continue_jump = True
             self.remove_highlight()
             self.selected_position = (row, col)
@@ -256,7 +258,7 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        from_pos, to_pos = get_best_move(self, self.player_color)
+        from_pos, to_pos = get_best_move(self, self.current_turn)
         print("Computer move from: ", from_pos, " to: ", to_pos)
         if from_pos and to_pos:
             self.selected_position = from_pos
