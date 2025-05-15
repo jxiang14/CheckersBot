@@ -1,117 +1,43 @@
-
-# def minimaxAction(board, depth, player_color):
-#     """
-#     Returns the best action for the player using the minimax algorithm with alpha-beta pruning.
-#     """
-#     alpha = float('-inf')
-#     beta = float('inf')
-
-#     best_action = minimax(board, depth, player_color, alpha, beta)
-
-#     return best_action
-
-# def minimax(board, depth, player_color, alpha, beta):
-#     """
-#     Minimax algorithm with alpha-beta pruning.
-#     """
-#     # if depth == 0 or board.check_win_condition():
-#     #     return board.evaluate(player_color)
-
-#     # current_player = board.get_current_player()
-
-#     # best_action = None
-
-#     # if current_player == player_color:
-#     #     max_val = float('-inf')
-#     #     for action in board.get_all_moves(current_player):
-#     #         new_board = board.apply_move(action)
-#     #         value = minimax(new_board, depth - 1, player_color, alpha, beta)
-#     #         if value > max_val:
-#     #             max_val = value
-#     #             best_action = action
-#     #         alpha = max(alpha, value)
-#     #         if beta <= alpha:
-#     #             break
-#     # else:
-#     #     min_val = float('inf')
-#     #     for action in board.get_all_moves(current_player):
-#     #         new_board = board.apply_move(action)
-#     #         value = minimax(new_board, depth - 1, player_color, alpha, beta)
-#     #         if value < min_val:
-#     #             min_val = value
-#     #             best_action = action
-#     #         beta = min(beta, value)
-#     #         if beta <= alpha:
-#     #             break
-
-#     # return best_action
-
-#     if depth == 0 or board.check_win_condition():
-#             return None, board.evaluate(player_color)
-
-#     current_player = board.get_current_player()
-#     all_moves = board.get_all_moves(current_player)
-
-#     best_action = None
-    
-#     if current_player == player_color:
-#         max_eval = float('-inf')
-#         for action in all_moves:
-#             new_board = board.apply_move(action)
-#             _, eval = minimax(new_board, depth - 1, player_color, alpha, beta)
-#             if eval > max_eval:
-#                 max_eval = eval
-#                 best_action = action
-#             alpha = max(alpha, eval)
-#             if beta <= alpha:
-#                 break
-#         return best_action, max_eval
-#     else:
-#         min_eval = float('inf')
-#         for action in all_moves:
-#             new_board = board.apply_move(action)
-#             _, eval = minimax(new_board, depth - 1, player_color, alpha, beta)
-#             if eval < min_eval:
-#                 min_eval = eval
-#                 best_action = action
-#             beta = min(beta, eval)
-#             if beta <= alpha:
-#                 break
-#         return best_action, min_eval
-
-
 import copy
 from utils import CheckersState
 
-def get_best_move(board, player_color, depth=3):
-    
-    if player_color == "black":
-        player_color = "red"
-    else:
-        player_color = "black"
-    board = CheckersState(player_color, board)
-    best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
-    print("[DEBUG] Best action found:", best_action)
+RED = 1
+BLACK = -1
+
+def get_best_move(state, player_color, depth=3):
+    state = CheckersState(player_color, state)
+    best_action, _ = minimaxAction(state, depth, player_color, float('-inf'), float('inf'), True)
+    print("Best action found:", best_action)
     if best_action is None:
-        print("[DEBUG] No best action found, returning None")
+        print("No best action found, returning None")
         return (None, None)
     return best_action
 
-def minimaxAction(board:CheckersState, depth, player_color, alpha, beta, maximizing_player):
+def minimaxAction(state:CheckersState, depth, player_color, alpha, beta, maximizing_player):
     best_move = None
 
-    if depth == 0 or board.get_winner():
-        eval_score = evaluate(board, player_color)
+    if depth == 0 or state.get_winner():
+        eval_score = evaluate(state, player_color)
         return None, eval_score
     
-    current_color = player_color if maximizing_player else get_opponent(player_color)
-    all_moves = get_all_moves(board, current_color)
+    current_color = state.current_player
+    all_moves = get_all_moves(state, current_color)
 
     if maximizing_player:
         max_eval = float('-inf')
         for from_pos, to_pos in all_moves:
-            new_board = simulate_move(board, from_pos, to_pos, player_color)
-            _, eval = minimaxAction(new_board, depth - 1, player_color, alpha, beta, False)
+            new_state = simulate_move(state, from_pos, to_pos)
+            
+            #new code
+            if depth == 1:
+                # print("depth is currently ", depth)
+                eval = evaluate_move(new_state, (from_pos, to_pos), player_color)
+                print(f"Evaluating move {from_pos} -> {to_pos} with eval_move: {eval}")
+            else:
+                # print("depth is currently ", depth)
+                _, eval = minimaxAction(new_state, depth - 1, player_color, alpha, beta, False)
+                print(f"Evaluating move {from_pos} -> {to_pos} with minimax: {eval}")
+            
             if eval > max_eval:
                 max_eval = eval
                 best_move = (from_pos, to_pos)
@@ -122,8 +48,16 @@ def minimaxAction(board:CheckersState, depth, player_color, alpha, beta, maximiz
     else:
         min_eval = float('inf')
         for from_pos, to_pos in all_moves:
-            new_board = simulate_move(board, from_pos, to_pos, player_color)
-            _, eval = minimaxAction(new_board, depth - 1, player_color, alpha, beta, True)
+            new_state = simulate_move(state, from_pos, to_pos)
+            
+            #new code
+            if depth == 1:
+                eval = evaluate_move(new_state, (from_pos, to_pos), player_color)
+                # print(f"Evaluating move {from_pos} -> {to_pos} with eval_move: {eval}")
+            else:
+                _, eval = minimaxAction(new_state, depth - 1, player_color, alpha, beta, True)
+                # print(f"Evaluating move {from_pos} -> {to_pos} with minimax: {eval}")
+            
             if eval < min_eval:
                 min_eval = eval
                 best_move = (from_pos, to_pos)
@@ -134,41 +68,75 @@ def minimaxAction(board:CheckersState, depth, player_color, alpha, beta, maximiz
 
 
 def get_opponent(color):
-    return "black" if color == "red" else "red"
+    return BLACK if color == RED else RED
 
-def get_all_moves(board, color):
+def get_all_moves(state, color):
     # moves = []
-    # for (row, col), (piece_color, _) in board.cells.items():
+    # for (row, col), (piece_color, _) in state.cells.items():
     #     if piece_color != color:
     #         continue
-    #     valid_moves = board.get_valid_moves(row, col)
+    #     valid_moves = state.get_valid_moves(row, col)
     #     for move in valid_moves:
     #         moves.append(((row, col), move))
     # return moves
-    return board.get_all_valid_moves(color)
+    return state.get_all_valid_moves(color)
 
 
-def simulate_move(board, from_pos, to_pos, player_color):
-    new_board = board.clone()
-    new_board.make_move((from_pos, to_pos))
-    return new_board
+def simulate_move(state, from_pos, to_pos):
+    new_state = state.clone()
+    new_state.make_move((from_pos, to_pos))
+    return new_state
 
 
-def evaluate(board, player_color):
+def evaluate(state, player_color):
     score = 0
+
+    if player_color == "red":
+        player_color = RED
+    else:
+        player_color = BLACK
 
     for row in range(8):
         for column in range(8):
-            piece = board.board[row][column]
+            piece = state.board[row][column]
             if piece == 0:
                 continue
             color, is_king = piece
-            if color == player_color:
-                score += 1
-                if is_king:
-                    score += 1
+            piece_score = 0
+            
+            if is_king:
+                piece_score += 2.0
             else:
-                score -= 1
-                if is_king:
-                    score -= 1
+                piece_score += 1.0
+                if color == RED:
+                    piece_score += row * 0.05 # more points to a red piece that is closer to being a king
+                else:
+                    piece_score += (7 - row) * 0.05 
+
+            if color == player_color:
+                score += piece_score
+            else:
+                score -= piece_score
+                
+    return score
+
+def evaluate_move(state, move, player_color):
+    score = 0
+    if state.can_capture_single_piece_if_moved(move):
+        score += 2
+    if state.can_capture_double_piece_if_moved(move):
+        score += 5
+    if state.can_become_king(move):
+        score += 3
+    if state.can_be_captured_if_moved(move):
+        score -= 3
+    if state.can_be_at_edge(move):
+        score += 0.5
+    score += evaluate(state, player_color)
+    print("player color: ", player_color)
+    # POSSIBLE HEURISTICS 
+    # add backed up (more safe)
+    # add new exposures (less safe)
+    # add trap opponent
+    # print (f"MOVE: {move}, SCORE: {score}")
     return score

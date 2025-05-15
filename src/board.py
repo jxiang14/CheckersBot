@@ -256,7 +256,7 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        from_pos, to_pos = get_best_move(self, self.player_color)
+        from_pos, to_pos = get_best_move(self, self.current_turn)
         print("Computer move from: ", from_pos, " to: ", to_pos)
         if from_pos and to_pos:
             self.selected_position = from_pos

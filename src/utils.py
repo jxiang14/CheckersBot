@@ -129,7 +129,7 @@ class CheckersState:
                 self.red_pieces.remove((middle_row, middle_col))
             self.board[middle_row][middle_col] = 0
 
-        if (new_row == 0 and self.current_player == RED) or (new_row == BOARD_SIZE - 1 and self.current_player == BLACK):
+        if (new_row == BOARD_SIZE - 1 and self.current_player == RED) or (new_row == 0 and self.current_player == BLACK):
             self.board[new_row][new_col] = (self.current_player, True)
 
         # if abs(new_row - row) > 1:
@@ -140,6 +140,7 @@ class CheckersState:
             self.must_continue_from = (new_row, new_col) if any(
                 abs(m[1][0] - m[0][0]) > 1 for m in further_captures
             ) else None
+        self.current_player = BLACK if self.current_player == RED else RED
         return self
     
     def check_further_captures(self, row, col):
@@ -178,4 +179,44 @@ class CheckersState:
         clone_state.red_pieces = self.red_pieces[:]
         clone_state.black_pieces = self.black_pieces[:]
         clone_state.current_player = self.current_player
+        clone_state.must_continue_from = self.must_continue_from
         return clone_state
+    
+    def can_capture_single_piece_if_moved(self, move):
+        (r1, c1), (r2, c2) = move
+        return abs(r2 - r1) == 2
+
+    def can_capture_double_piece_if_moved(self, move):
+        (r1, c1), (r2, c2) = move
+        return abs(r2 - r1) == 4
+    
+    def can_be_captured_if_moved(self, move):
+        (r1, c1), (r2, c2) = move
+        if self.current_player == RED:
+            opponent_pieces = self.black_pieces
+            dirs = [(-1, -1), (-1, 1)]
+        else:
+            opponent_pieces = self.red_pieces
+            dirs = [(1, -1), (1, 1)]
+        for dr, dc in dirs:
+            r, c = r2 - dr, c2 - dc
+            if (r, c) in opponent_pieces:
+                if r2 + dr >= 0 and r2 + dr < 8 and c2 + dc >= 0 and c2 + dc < 8:
+                    if c2 + dc == c1 or self.board[r2 + dr][c2 + dc] == 0:
+                        return True
+        return False
+    
+    def can_become_king(self, move):
+        (r1, c1), (r2, c2) = move
+        if self.current_player == RED and r2 == 7:
+            return True
+        elif self.current_player == BLACK and r2 == 0:
+            return True
+        return False
+    
+    def can_be_at_edge(self, move):
+        (r1, c1), (r2, c2) = move
+        if r2 == 0 or r2 == 7 or c2 == 0 or c2 == 7:
+            return True
+        return False
+    

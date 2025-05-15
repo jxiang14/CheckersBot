@@ -77,18 +77,3 @@ class MCTS:
                 best_move = move
         return best_move
     
-    def can_be_captured_if_moved(self, move, state):
-        (r1, c1), (r2, c2) = move
-        if state.current_player == RED:
-            opponent_pieces = state.black_pieces
-            dirs = [(-1, -1), (-1, 1)]
-        else:
-            opponent_pieces = state.red_pieces
-            dirs = [(1, -1), (1, 1)]
-        for dr, dc in dirs:
-            r, c = r2 - dr, c2 - dc
-            if (r, c) in opponent_pieces:
-                if r2 + dr >= 0 and r2 + dr < 8 and c2 + dc >= 0 and c2 + dc < 8:
-                    if c2 + dc == c1 or state.board[r2 + dr][c2 + dc] == 0:
-                        return True
-        return False
