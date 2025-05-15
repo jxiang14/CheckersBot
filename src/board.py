@@ -231,7 +231,7 @@ class CheckersBoard(Widget):
             self.repaint()
             self.highlight_selected(row, col)
             if self.current_turn != self.player_color:
-                self.computer_move()
+                Clock.schedule_once(lambda dt: self.computer_move(), 0)
             return
         else:
             self.continue_jump = False
@@ -251,7 +251,7 @@ class CheckersBoard(Widget):
             self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
 
         if self.current_turn != self.player_color:
-            self.computer_move()
+            Clock.schedule_once(lambda dt: self.computer_move(), 0)
 
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
