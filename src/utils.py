@@ -13,6 +13,7 @@ class CheckersState:
             self.board = self.board_from_kivy_board(board)
         else:
             self.board = self.create_board()
+        self.must_continue_from = None
 
     def player_from_kivy_player(self, player):
         if player == "red":
@@ -76,9 +77,30 @@ class CheckersState:
         
         return valid_moves
 
+    # def get_all_valid_moves(self, player):
+    #     valid_moves = []
+    #     capturing_moves = []
+
+    #     pieces = self.red_pieces if player == RED else self.black_pieces
+    #     if self.must_continue_from:
+    #         moves = self.get_valid_moves(self.must_continue_from[0], self.must_continue_from[1])
+    #         return [m for m in moves if abs(m[1][0] - m[0][0]) > 1]
+    #     for piece in pieces:
+    #         moves = self.get_valid_moves(*piece)
+    #         for move in moves:
+    #             if abs(move[1][0] - move[0][0]) > 1:  # capture move
+    #                 capturing_moves.append(move)
+    #         valid_moves.extend(moves)
+
+    #     return capturing_moves if capturing_moves else valid_moves
+    
     def get_all_valid_moves(self, player):
         valid_moves = []
         pieces = self.red_pieces if player == RED else self.black_pieces
+        if self.must_continue_from:
+            # Only return capturing moves from the same piece
+            moves = self.get_valid_moves(*self.must_continue_from)
+            return [m for m in moves if abs(m[1][0] - m[0][0]) > 1]
         for piece in pieces:
             row, col = piece
             valid_moves.extend(self.get_valid_moves(row, col))
@@ -110,16 +132,26 @@ class CheckersState:
         if (new_row == 0 and self.current_player == RED) or (new_row == BOARD_SIZE - 1 and self.current_player == BLACK):
             self.board[new_row][new_col] = (self.current_player, True)
 
+        # if abs(new_row - row) > 1:
+        #     self.check_further_captures(new_row, new_col)
         if abs(new_row - row) > 1:
-            self.check_further_captures(new_row, new_col)
+            # check if piece must continue capturing
+            further_captures = self.get_valid_moves(new_row, new_col)
+            self.must_continue_from = (new_row, new_col) if any(
+                abs(m[1][0] - m[0][0]) > 1 for m in further_captures
+            ) else None
         return self
     
     def check_further_captures(self, row, col):
         moves = self.get_valid_moves(row, col)
         if moves:
-            self.make_move(moves[0])
+            for move in moves:
+                if move[0] == (row, col):
+                    self.make_move(move)
+                    break
 
     def switch_player(self):
+        self.must_continue_from = None
         self.current_player = BLACK if self.current_player == RED else RED
 
     def get_winner(self):
