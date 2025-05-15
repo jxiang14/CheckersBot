@@ -1,5 +1,5 @@
 import minimax
-from utils import CheckersState
+from checkers_state import CheckersState
 from mcts import MCTS
 
 # def get_best_move(board, player_color):
