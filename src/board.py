@@ -7,7 +7,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from minimax import get_best_move
+from best_move import get_best_move
 import copy
 # from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
@@ -55,13 +55,13 @@ class CheckersBoard(Widget):
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     x, y = col * self.cell_size + self.pos[0], row * self.cell_size + self.pos[1]
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         Color(0.4, 0.2, 0, 1)
                     else:
                         Color(1, 0.83, 0.5, 1)
                     Rectangle(pos=(x, y), size=(self.cell_size, self.cell_size))
                     
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         if row < 3:
                             self.add_piece(row, col, "red")
                         elif row > 4:
@@ -140,7 +140,7 @@ class CheckersBoard(Widget):
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     x, y = col * self.cell_size + self.pos[0], row * self.cell_size + self.pos[1]
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         Color(0.4, 0.2, 0, 1)
                     else:
                         Color(1, 0.83, 0.5, 1)
