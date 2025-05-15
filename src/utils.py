@@ -39,12 +39,12 @@ class CheckersState:
         board = [[0] * 8 for _ in range(8)]
         for row in range(3):
             for col in range(8):
-                if (row + col) % 2 == 1:
+                if (row + col) % 2 == 0:
                     board[row][col] = (RED, False)
                     self.red_pieces.append((row, col))
         for row in range(5, 8):
             for col in range(8):
-                if (row + col) % 2 == 1:
+                if (row + col) % 2 == 0:
                     board[row][col] = (BLACK, False)
                     self.black_pieces.append((row, col))
         return board
