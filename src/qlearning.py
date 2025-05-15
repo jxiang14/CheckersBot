@@ -1,179 +1,161 @@
-import numpy as np
 import random
 import pickle
 from collections import defaultdict
+from utils import CheckersState, RED, BLACK
 
-BOARD_SIZE = 8
 class QLearningAgent:
-    def __init__(self, env, learning_rate=0.1, discount_factor=0.99,
-                 epsilon=1.0, epsilon_decay=0.995, min_epsilon=0.01):
-        self.env = env
-        self.lr = learning_rate
-        self.gamma = discount_factor
-        self.epsilon = epsilon
-        self.epsilon_decay = epsilon_decay
-        self.min_epsilon = min_epsilon
-        # Q-table keys: (state_key, action_tuple)
-        self.q_table = defaultdict(float)
+    def __init__(self, alpha=0.1, gamma=0.9, epsilon=0.1):
+        self.alpha = alpha  # learning rate
+        self.gamma = gamma  # discount factor
+        self.epsilon = epsilon  # exploration rate
+        # Q-table: mapping state_key -> dict of action -> value
+        self.q_table = defaultdict(lambda: defaultdict(float))
 
-    def get_action(self, state):
-        # ε-greedy over valid actions
-        valid_actions = self.env.get_valid_actions(state)
-        if not valid_actions:
+    def state_to_key(self, state):
+        # Serialize board and current player into a hashable key
+        flat = []
+        for row in state.board:
+            for cell in row:
+                if cell == 0:
+                    flat.append(0)
+                else:
+                    color, king = cell
+                    val = color * (2 if king else 1)
+                    flat.append(val)
+        flat.append(state.current_player)
+        return tuple(flat)
+
+    def choose_action(self, state):
+        moves = state.get_all_valid_moves(state.current_player)
+        if not moves:
             return None
+        key = self.state_to_key(state)
+        # epsilon-greedy
         if random.random() < self.epsilon:
-            return random.choice(valid_actions)
-        q_vals = [(self.q_table[(state, action)], action) for action in valid_actions]
-        max_q = max(q_vals, key=lambda x: x[0])[0]
-        best = [action for q, action in q_vals if q == max_q]
-        return random.choice(best)
+            return random.choice(moves)
+        # choose max-Q move
+        q_vals = self.q_table[key]
+        if not q_vals:
+            return random.choice(moves)
+        best_val = max(q_vals[a] for a in moves)
+        best_moves = [a for a in moves if q_vals[a] == best_val]
+        return random.choice(best_moves)
 
-    def update(self, state, action, reward, next_state, done):
-        current = self.q_table[(state, action)]
-        if done:
-            target = reward
-        else:
-            next_actions = self.env.get_valid_actions(next_state)
-            next_max = max((self.q_table[(next_state, a)] for a in next_actions), default=0.0)
-            target = reward + self.gamma * next_max
-        self.q_table[(state, action)] = current + self.lr * (target - current)
+    def get_reward(self, state, next_state):
+        """
+        Reward priorities:
+        1. Win: +1, Lose: -1
+        2. Capture opponent king: +0.5
+        3. Capture any opponent piece: +0.2
+        4. Move forward (for RED): +0.05 per row
+        """
+        # 1. Terminal reward
+        if next_state.is_terminal():
+            winner = next_state.get_winner()
+            return 1.0 if winner == RED else -1.0
 
-    def decay_epsilon(self):
-        self.epsilon = max(self.min_epsilon, self.epsilon * self.epsilon_decay)
+        reward = 0.0
+        # Count opponent kings before and after
+        opponent = BLACK
+        # state.board cells hold (color, king)
+        def count_kings(board, color):
+            return sum(1 for row in board for cell in row if cell != 0 and cell[0] == color and cell[1])
+        kings_before = count_kings(state.board, opponent)
+        kings_after = count_kings(next_state.board, opponent)
+        if kings_after < kings_before:
+            return 0.5
+
+        # Count total opponent pieces before and after
+        def count_pieces(board, color):
+            return sum(1 for row in board for cell in row if cell != 0 and cell[0] == color)
+        pieces_before = count_pieces(state.board, opponent)
+        pieces_after = count_pieces(next_state.board, opponent)
+        if pieces_after < pieces_before:
+            return 0.2
+
+        # Motivate forward movement: RED moves down (+row), BLACK moves up (-row)
+        # Find moved piece location
+        # we assume only one move occurred
+        # get positions of agent's pieces
+        agent_color = RED
+        before_positions = [(r, c) for r in range(len(state.board)) for c in range(len(state.board)) \
+                            if state.board[r][c] != 0 and state.board[r][c][0] == agent_color]
+        after_positions = [(r, c) for r in range(len(next_state.board)) for c in range(len(next_state.board)) \
+                           if next_state.board[r][c] != 0 and next_state.board[r][c][0] == agent_color]
+        # find position that changed
+        moved = set(after_positions) - set(before_positions)
+        if moved:
+            new_row, _ = moved.pop()
+            # find old position of that piece as the one not in after but in before
+            old = set(before_positions) - set(after_positions)
+            if old:
+                old_row, _ = old.pop()
+                delta = new_row - old_row
+                # for RED, delta>0 is forward; for BLACK, delta<0
+                reward += 0.05 * (delta if agent_color == RED else -delta)
+        return reward
+
+    def update(self, state, action, reward, next_state):
+        s_key = self.state_to_key(state)
+        ns_key = self.state_to_key(next_state)
+        q_sa = self.q_table[s_key][action]
+        next_moves = next_state.get_all_valid_moves(next_state.current_player)
+        max_q_next = max((self.q_table[ns_key][a] for a in next_moves), default=0.0)
+        self.q_table[s_key][action] = q_sa + self.alpha * (reward + self.gamma * max_q_next - q_sa)
+
+    def run_episode(self, training=True):
+        from random import choice
+        state = CheckersState('red')
+        total_reward = 0
+        while not state.is_terminal():
+            if state.current_player == RED:
+                action = self.choose_action(state)
+                if action is None:
+                    break
+                next_state = state.clone()
+                next_state.make_move(action)
+                reward = self.get_reward(state, next_state)
+                if training:
+                    self.update(state, action, reward, next_state)
+                total_reward += reward
+            else:
+                moves = state.get_all_valid_moves(state.current_player)
+                if not moves:
+                    break
+                action = choice(moves)
+                next_state = state.clone()
+                next_state.make_move(action)
+            state = next_state
+            state.switch_player()
+        return total_reward
+
+    def train(self, episodes=10000, log_interval=1000):
+        for ep in range(1, episodes + 1):
+            self.run_episode(training=True)
+            if ep % log_interval == 0:
+                print(f"Episode {ep}: Q-table size: {len(self.q_table)}")
+        print(f"Training completed over {episodes} episodes.")
+
+    def evaluate(self, episodes=1000):
+        total = 0
+        old_eps = self.epsilon
+        self.epsilon = 0.0
+        for _ in range(episodes):
+            total += self.run_episode(training=False)
+        self.epsilon = old_eps
+        avg_reward = total / episodes
+        print(f"Evaluation over {episodes} episodes: avg reward = {avg_reward}")
+        return avg_reward
 
     def save(self, filepath):
-        """Save Q-table and exploration settings to disk."""
-        data = {
-            'q_table': dict(self.q_table),
-            'epsilon': self.epsilon
-        }
         with open(filepath, 'wb') as f:
-            pickle.dump(data, f)
+            pickle.dump(dict(self.q_table), f)
 
     def load(self, filepath):
-        """Load Q-table and exploration settings from disk."""
         with open(filepath, 'rb') as f:
-            data = pickle.load(f)
-        self.q_table = defaultdict(float, data['q_table'])
-        self.epsilon = data.get('epsilon', self.epsilon)
-
-class KivyCheckersEnv:
-    """
-    Adapts CheckersBoard for Q-learning.
-    Action: ((r, c), (r2, c2))
-    State: tuple of rows with (color, king) or None
-    """
-    def __init__(self, board_widget):
-        self.board = board_widget
-
-    def reset(self):
-        self.board.cells.clear()
-        self.board.initialize_board()
-        self.board.current_turn = "red"
-        return self._encode_state()
-
-    def step(self, action):
-        (r, c), (r2, c2) = action
-        # Clear any highlighting to avoid errors
-        self.board.highlight_rect = None
-        # Prepare for move
-        self.board.selected_position = (r, c)
-        self.board.selected_piece = self.board.cells.get((r, c))
-        # count pieces before to measure captures
-        prev_piece_count = len(self.board.cells)
-        try:
-            self.board.move_piece(r2, c2)
-        except ValueError:
-            pass
-        # count after move
-        new_piece_count = len(self.board.cells)
-        captures = prev_piece_count - new_piece_count
-        # Reward shaping:
-        # - small step penalty to encourage faster play
-        # - bonus per capture in this move
-        # - larger bonus for winning
-        step_penalty = -0.01
-        capture_bonus = 1.0 * captures
-        done = self.board.check_win_condition()
-        win_bonus = 10.0 if done else 0.0
-        reward = step_penalty + capture_bonus + win_bonus
-        next_state = self._encode_state()
-        return next_state, reward, done, {}
-
-    def get_valid_actions(self, state):
-        self._decode_state(state)
-        actions = []
-        for (r, c), (color, king) in self.board.cells.items():
-            if color == self.board.current_turn:
-                for (r2, c2) in self.board.get_valid_moves(r, c):
-                    actions.append(((r, c), (r2, c2)))
-        return actions
-
-    def _encode_state(self):
-        mat = []
-        for r in range(BOARD_SIZE):
-            row = []
-            for c in range(BOARD_SIZE):
-                row.append(self.board.cells.get((r, c), None))
-            mat.append(tuple(row))
-        return (tuple(mat), self.board.current_turn)
-
-    def _decode_state(self, state_key):
-        mat, turn = state_key
-        self.board.cells.clear()
-        for r, row in enumerate(mat):
-            for c, cell in enumerate(row):
-                if cell:
-                    self.board.cells[(r, c)] = cell
-        self.board.current_turn = turn
-
-def train_agent(env, agent, episodes=50, max_steps=200):
-    for ep in range(1, episodes+1):
-        state = env.reset()
-        total_reward = 0
-        done = False
-        for _ in range(max_steps):
-            action = agent.get_action(state)
-            if action is None:
-                break
-            next_state, reward, done, _ = env.step(action)
-            agent.update(state, action, reward, next_state, done)
-            state = next_state
-            total_reward += reward
-            if done:
-                break
-        agent.decay_epsilon()
-        if ep % 1 == 0:
-            black_pieces = len([1 for (r, c), (color, _) in env.board.cells.items() if color == "black"])
-            red_pieces = len([1 for (r, c), (color, _) in env.board.cells.items() if color == "red"])
-            print(f"Episode {ep}/{episodes} Reward={total_reward:.2f} Epsilon={agent.epsilon:.3f} Red={red_pieces} Black={black_pieces}")
-    print("Training complete.")
+            self.q_table = defaultdict(lambda: defaultdict(float), pickle.load(f))
 
 if __name__ == "__main__":
-    from board import CheckersBoard
-    # Setup board and stub turn_label
-    board = CheckersBoard()
-     # Your existing Kivy CheckersBoard widget
-    from kivy.uix.label import Label
-    board.turn_label = Label(text="", color=(0,0,0,1))
-
-    env = KivyCheckersEnv(board)
-    agent = QLearningAgent(env)
-
-    # To load an existing model, uncomment:
-    # agent.load('qtable.pkl')
-
-    train_agent(env, agent)
-    # Save trained Q-table
-    agent.save('qtable.pkl')
-
-    # Example: Play against trained agent
-    state = env.reset()
-    # while True:
-    #     # agent move
-    #     action = agent.get_action(state)
-    #     if action is None: break
-    #     state, _, done, _ = env.step(action)
-    #     if done: break
-    #     # here you could prompt human move via UI/input
-    print("Game over.")
+    agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.1)
+    agent.train(episodes=10000)
+    agent.save('checkers_qtable.pkl')

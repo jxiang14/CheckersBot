@@ -9,6 +9,24 @@ from kivy.uix.button import Button
 from kivy.clock import Clock
 from best_move import get_best_move
 import copy
+# from qlearning import QLearningAgent, CheckersState, RED, BLACK
+
+# agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
+# agent.load('checkers_qtable.pkl')  # path to your trained Q-table
+# def get_best_move(board_widget, player_color):
+#     """
+#     Translate the Kivy board (board_widget.cells) into a CheckersState,
+#     ask the Q-agent for its action, and return the move tuple.
+#     """
+#     # Build a CheckersState from the current widget
+#     # we rely on the board_from_kivy_board constructor path:
+#     state = CheckersState(player_color, board=board_widget)
+#     # Ask the agent for its preferred move
+#     move = agent.choose_action(state)
+#     if move is None:
+#         return (None, None)
+#     # move is ((r_from, c_from), (r_to, c_to))
+#     return move
 
 BOARD_SIZE = 8
 
@@ -259,6 +277,7 @@ class CheckersBoard(Widget):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
         from_pos, to_pos = get_best_move(self, self.current_turn)
+
         print("Computer move from: ", from_pos, " to: ", to_pos)
         if from_pos and to_pos:
             self.selected_position = from_pos
@@ -310,50 +329,3 @@ class CheckersBoard(Widget):
             self.show_win_popup(winner=self.current_turn)
             return True
         return False
-
-    # def get_current_player(self):
-    #     return self.current_turn
-    
-    # def get_all_moves(self, player_color):
-    #     actions = []
-    #     for (row, col) in self.cells.keys():
-    #         color = self.cells[(row, col)][0]
-    #         if color == player_color:
-    #             valid_moves = self.get_valid_moves(row, col)
-    #             for move in valid_moves:
-    #                 actions.append(((row, col), move))
-    #     return actions
-    
-    # def apply_move(self, action):
-    #     """
-    #     Returns a deep copy of the board with the move applied.
-    #     """
-    #     from_pos, to_pos = action
-    #     new_board = CheckersBoard()
-    
-    #     # Manually copy over core game state
-    #     new_board.cells = copy.deepcopy(self.cells)
-    #     new_board.current_turn = self.current_turn
-    #     new_board.selected_position = from_pos
-    #     new_board.selected_piece = new_board.cells[from_pos]
-    #     new_board.player_color = self.player_color
-    #     new_board.continue_jump = False
-    #     new_board.further_captures = []
-
-    #     # Optional: temporarily suppress GUI painting if needed
-    #     try:
-    #         new_board.move_piece(to_pos[0], to_pos[1])
-    #     except AttributeError:
-    #         pass  # In case move_piece tries to access GUI elements like turn_label
-
-    #     return new_board
-
-    # def evaluate(self, player):
-    #     score = 0
-    #     for piece_color, is_king in self.cells.values():
-    #         value = 1.5 if is_king else 1
-    #         if piece_color == player:
-    #             score += value
-    #         else:
-    #             score -= value
-    #     return score

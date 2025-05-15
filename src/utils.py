@@ -191,8 +191,4 @@ class CheckersState:
         clone_state.black_pieces = copy.deepcopy(self.black_pieces)
         clone_state.current_player = copy.deepcopy(self.current_player)
         clone_state.must_continue_from = copy.deepcopy(self.must_continue_from)
-        # clone_state.red_pieces = self.red_pieces[:]
-        # clone_state.black_pieces = self.black_pieces[:]
-        # clone_state.current_player = self.current_player
-        # clone_state.must_continue_from = self.must_continue_from
         return clone_state
