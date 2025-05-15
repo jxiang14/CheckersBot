@@ -190,16 +190,16 @@ class CheckersBoard(Widget):
             #     old_row, old_col = None, None
             piece_color, _ = self.cells[(row, col)]
             # Change back for real game
-            # if piece_color == self.current_turn and piece_color == self.player_color:
-            if piece_color == self.current_turn:
+            if piece_color == self.current_turn and piece_color == self.player_color:
+            # if piece_color == self.current_turn:
                 self.selected_piece = self.cells[(row, col)]
                 self.selected_position = (row, col)
                 self.remove_highlight()
                 self.highlight_selected(row, col)
                 print("highlighting")
         elif self.selected_piece:
-            valid_moves = self.get_valid_moves(self.selected_position[0], self.selected_position[1])
-            if (row, col) in valid_moves:
+            valid_moves = self.get_all_valid_moves(self.current_turn)
+            if (self.selected_position,(row, col)) in valid_moves:
                 self.move_piece(row, col)
                 print("highlighting")
 
@@ -239,7 +239,7 @@ class CheckersBoard(Widget):
 
         further_moves = self.get_valid_moves(row, col)
         self.further_captures = []
-        for (r, c) in further_moves:
+        for (_, (r,c)) in further_moves:
             if abs(r - row) == 2:
                 self.further_captures.append((r, c))
 
@@ -289,7 +289,6 @@ class CheckersBoard(Widget):
 
     def get_valid_moves(self, row, col):
         valid_moves = []
-        capture_moves = []
         color, king = self.cells.get((row, col))
         
         if color == "red":
@@ -306,18 +305,30 @@ class CheckersBoard(Widget):
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc
             if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE and (new_row, new_col) not in self.cells:
-                valid_moves.append((new_row, new_col))
+                valid_moves.append(((row, col),(new_row, new_col)))
             elif 0 <= new_row + dr < BOARD_SIZE and 0 <= new_col + dc < BOARD_SIZE:
                 middle_row, middle_col = row + dr, col + dc
                 if (middle_row, middle_col) in self.cells and self.cells[(middle_row, middle_col)][0] != color:
                     landing_row, landing_col = new_row + dr, new_col + dc
                     if 0 <= landing_row < BOARD_SIZE and 0 <= landing_col < BOARD_SIZE and (landing_row, landing_col) not in self.cells:
-                        valid_moves.append((landing_row, landing_col))
-                        capture_moves.append((landing_row, landing_col))
+                        valid_moves.append(((row, col),(landing_row, landing_col)))
+        return valid_moves
+    
+    def get_all_valid_moves(self, player):
+        valid_moves = []
+        for piece in self.cells.keys():
+            row, col = piece
+            color, king = self.cells[piece]
+            if color == player:
+                valid_moves.extend(self.get_valid_moves(row, col))
+        capture_moves = []
+        for move in valid_moves:
+            r, _, new_r, _ = move[0][0], move[0][1], move[1][0], move[1][1]
+            if abs(new_r - r) > 1:
+                capture_moves.append(move)
         if len(capture_moves) > 0:
             return capture_moves
         return valid_moves
-
     
     def check_win_condition(self):
         opponent_color = "black" if self.current_turn == "red" else "red"
