@@ -7,7 +7,11 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from qlearning import QLearningAgent, CheckersState, RED, BLACK
+from best_move import get_best_move
+import time
+import copy
+
+# from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
 agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
 agent.load('checkers_weights.pkl')  # path to your trained Q-table
@@ -39,7 +43,7 @@ class CheckersBoard(Widget):
         self.selected_piece = None
         self.selected_position = None
         self.highlight_rect = None
-        self.current_turn = "red"
+        self.current_turn = "black"
         self.continue_jump = False
         self.further_captures = []
         self.player_color = None
@@ -53,13 +57,13 @@ class CheckersBoard(Widget):
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     x, y = col * self.cell_size + self.pos[0], row * self.cell_size + self.pos[1]
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         Color(0.4, 0.2, 0, 1)
                     else:
                         Color(1, 0.83, 0.5, 1)
                     Rectangle(pos=(x, y), size=(self.cell_size, self.cell_size))
                     
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         if row < 3:
                             self.add_piece(row, col, "red")
                         elif row > 4:
@@ -68,7 +72,7 @@ class CheckersBoard(Widget):
     def choose_color(self, color, popup):
         self.player_color = color
         popup.dismiss()
-        if color == "black":
+        if color == "red":
             self.computer_move()
 
     def create_color_selection_popup(self):
@@ -138,7 +142,7 @@ class CheckersBoard(Widget):
             for row in range(BOARD_SIZE):
                 for col in range(BOARD_SIZE):
                     x, y = col * self.cell_size + self.pos[0], row * self.cell_size + self.pos[1]
-                    if (row + col) % 2 == 1:
+                    if (row + col) % 2 == 0:
                         Color(0.4, 0.2, 0, 1)
                     else:
                         Color(1, 0.83, 0.5, 1)
@@ -188,16 +192,16 @@ class CheckersBoard(Widget):
             #     old_row, old_col = None, None
             piece_color, _ = self.cells[(row, col)]
             # Change back for real game
-            # if piece_color == self.current_turn and piece_color == self.player_color:
-            if piece_color == self.current_turn:
+            if piece_color == self.current_turn and piece_color == self.player_color:
+            # if piece_color == self.current_turn:
                 self.selected_piece = self.cells[(row, col)]
                 self.selected_position = (row, col)
                 self.remove_highlight()
                 self.highlight_selected(row, col)
                 print("highlighting")
         elif self.selected_piece:
-            valid_moves = self.get_valid_moves(self.selected_position[0], self.selected_position[1])
-            if (row, col) in valid_moves:
+            valid_moves = self.get_all_valid_moves(self.current_turn)
+            if (self.selected_position,(row, col)) in valid_moves:
                 self.move_piece(row, col)
                 print("highlighting")
 
@@ -215,11 +219,13 @@ class CheckersBoard(Widget):
     
     def move_piece(self, row, col):
         old_row, old_col = self.selected_position
+        just_made_king = False
         if (row, col) not in self.cells:
             color, is_king = self.selected_piece
 
             if not is_king and (color == "red" and row == BOARD_SIZE - 1) or (color == "black" and row == 0):
                 is_king = True
+                just_made_king = True
 
             self.cells[(row, col)] = (color, is_king)
             self.selected_piece = (color, is_king)
@@ -235,19 +241,17 @@ class CheckersBoard(Widget):
 
         further_moves = self.get_valid_moves(row, col)
         self.further_captures = []
-        for (r, c) in further_moves:
+        for (_, (r,c)) in further_moves:
             if abs(r - row) == 2:
                 self.further_captures.append((r, c))
 
-        if was_capture and self.further_captures:
+        if was_capture and self.further_captures and not just_made_king:
             self.continue_jump = True
             self.remove_highlight()
             self.selected_position = (row, col)
             self.selected_piece = self.cells[(row, col)]
             self.repaint()
             self.highlight_selected(row, col)
-            if self.current_turn != self.player_color:
-                Clock.schedule_once(lambda dt: self.computer_move(), 0)
             return
         else:
             self.continue_jump = False
@@ -256,6 +260,12 @@ class CheckersBoard(Widget):
             # Return if game over
             return
 
+        self.switch_player()
+
+        if self.current_turn != self.player_color:
+            Clock.schedule_once(lambda dt: self.computer_move(), 0)
+
+    def switch_player(self):
         self.selected_piece = None
         self.selected_position = None
         self.current_turn = "black" if self.current_turn == "red" else "red"
@@ -266,30 +276,22 @@ class CheckersBoard(Widget):
             self.turn_label.text = f"{self.current_turn.capitalize()}'s Turn"
             self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
 
-        if self.current_turn != self.player_color:
-            Clock.schedule_once(lambda dt: self.computer_move(), 0)
-
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        # from_pos, to_pos = get_best_move(self, self.player_color)
-        # if not from_pos or not to_pos:
-        #     print("No valid moves available for the computer.")
-        #     return
-        # # mimic a touch: select piece, then move it
-        # self.selected_position = from_pos
-        # self.selected_piece = self.cells[from_pos]
-        # # unpack destination
-        # dest_row, dest_col = to_pos
-        # self.move_piece(dest_row, dest_col)
-        comp_color = "red" if self.player_color == "black" else "black"
-        from_pos, to_pos = get_best_move(self, comp_color)
+        move = get_best_move(self, self.current_turn)
 
-        print("Computer move from: ", from_pos, " to: ", to_pos)
-        if from_pos and to_pos:
-            self.selected_position = from_pos
-            self.selected_piece = self.cells[from_pos]
-            self.move_piece(to_pos[0], to_pos[1])
+        print("Computer move ", move)
+        if move:
+            def do_step(i):
+                if i < len(move) - 1:
+                    from_pos = move[i]
+                    to_pos = move[i + 1]
+                    self.selected_position = from_pos
+                    self.selected_piece = self.cells[from_pos]
+                    self.move_piece(to_pos[0], to_pos[1])
+                    Clock.schedule_once(lambda dt: do_step(i + 1), 3.5)
+            do_step(0)
 
     def get_valid_moves(self, row, col):
         valid_moves = []
@@ -309,16 +311,30 @@ class CheckersBoard(Widget):
         for dr, dc in directions:
             new_row, new_col = row + dr, col + dc
             if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE and (new_row, new_col) not in self.cells:
-                valid_moves.append((new_row, new_col))
+                valid_moves.append(((row, col),(new_row, new_col)))
             elif 0 <= new_row + dr < BOARD_SIZE and 0 <= new_col + dc < BOARD_SIZE:
                 middle_row, middle_col = row + dr, col + dc
                 if (middle_row, middle_col) in self.cells and self.cells[(middle_row, middle_col)][0] != color:
                     landing_row, landing_col = new_row + dr, new_col + dc
                     if 0 <= landing_row < BOARD_SIZE and 0 <= landing_col < BOARD_SIZE and (landing_row, landing_col) not in self.cells:
-                        valid_moves.append((landing_row, landing_col))
-        
+                        valid_moves.append(((row, col),(landing_row, landing_col)))
         return valid_moves
-
+    
+    def get_all_valid_moves(self, player):
+        valid_moves = []
+        for piece in self.cells.keys():
+            row, col = piece
+            color, king = self.cells[piece]
+            if color == player:
+                valid_moves.extend(self.get_valid_moves(row, col))
+        capture_moves = []
+        for move in valid_moves:
+            r, _, new_r, _ = move[0][0], move[0][1], move[1][0], move[1][1]
+            if abs(new_r - r) > 1:
+                capture_moves.append(move)
+        if len(capture_moves) > 0:
+            return capture_moves
+        return valid_moves
     
     def check_win_condition(self):
         opponent_color = "black" if self.current_turn == "red" else "red"

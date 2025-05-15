@@ -8,13 +8,15 @@ class MCTS:
     def __init__(self, game_state, iteration_limit=1500):
         self.root = Node(game_state)
         self.iteration_limit = iteration_limit
-        self.epsilon = 0.7
+        self.epsilon = 1.0
 
     def run(self):
         sim_avg = 0
         for _ in range(self.iteration_limit):
             node = self._select(self.root)
             result = self._simulate(node.game_state)
+            # if node.player != self.root.game_state.current_player:
+            #     result = -result
             sim_avg += result
             node.backpropagate(result)
         print(f"Average simulation result: {sim_avg / self.iteration_limit:.2f}")
@@ -31,7 +33,8 @@ class MCTS:
 
     def _simulate(self, game_state):
         state = game_state.clone()
-        while not state.is_terminal():
+        iterations = 0
+        while not state.is_terminal() and iterations < 750:
             moves = state.get_all_valid_moves(state.current_player)
             if not moves:
                 break
@@ -40,22 +43,29 @@ class MCTS:
             else:
                 move = self._evaluate_moves_heuristically(moves, state)
             state = state.make_move(move)
-            state.switch_player()
+            # state.switch_player()
+            iterations += 1
 
+        root_player = self.root.game_state.current_player
         winner = state.get_winner()
-        # print(f"Root player: {self.root.game_state.current_player}")
-        # # Return 1 if root's player won, -1 if they lost, 0 for draw
-        # root_player = self.root.game_state.current_player
-        # return 1 if winner == root_player else -1
-        return winner
+        # print(f"Winner: {winner}, Root player: {root_player}")
+        if winner == root_player:
+            return 1
+        elif winner == 0:
+            print("Draw")
+            return 0
+        else:
+            return -1
 
     def _best_move(self):
         if not self.root.children:
             return None  # No moves available
         for child in self.root.children:
-            print(f"Move: {child.move}, Wins: {child.wins}, Visits: {child.visits}, Win rate: {child.wins / child.visits:.2f}")
+            for grandchild in child.children:
+                print(f"Child: {child.move}, Grandchild: {grandchild.move}, Wins: {grandchild.wins}, Visits: {grandchild.visits}, Win rate: {grandchild.wins / grandchild.visits:.2f}")
+            # print(f"Move: {child.move}, Wins: {child.wins}, Visits: {child.visits}, Win rate: {child.wins / child.visits:.2f}")
         # best_child = max(self.root.children, key=lambda c: c.visits)
-        best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.1 * c.visits)
+        best_child = max(self.root.children, key=lambda c: (c.wins / c.visits) + 0.2 * c.visits)
         return best_child.move
     
     def _evaluate_moves_heuristically(self, moves, state):
@@ -76,7 +86,7 @@ class MCTS:
                 best_score = score
                 best_move = move
         return best_move
-    
+
     def can_be_captured_if_moved(self, move, state):
         (r1, c1), (r2, c2) = move
         if state.current_player == RED:
@@ -92,3 +102,13 @@ class MCTS:
                     if c2 + dc == c1 or state.board[r2 + dr][c2 + dc] == 0:
                         return True
         return False
+    
+    def update_root(self, chosen_move):
+        for child in self.root.children:
+            if child.move == chosen_move:
+                self.root = child
+                self.root.parent = None
+                return
+        # Fallback if chosen move wasn’t in tree
+        new_state = self.root.game_state.make_move(chosen_move)
+        self.root = Node(new_state)
