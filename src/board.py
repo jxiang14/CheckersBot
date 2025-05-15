@@ -8,7 +8,9 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
 from best_move import get_best_move
+import time
 import copy
+
 # from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
 # agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
@@ -250,8 +252,6 @@ class CheckersBoard(Widget):
             self.selected_piece = self.cells[(row, col)]
             self.repaint()
             self.highlight_selected(row, col)
-            if self.current_turn != self.player_color:
-                Clock.schedule_once(lambda dt: self.computer_move(), 0)
             return
         else:
             self.continue_jump = False
@@ -260,6 +260,12 @@ class CheckersBoard(Widget):
             # Return if game over
             return
 
+        self.switch_player()
+
+        if self.current_turn != self.player_color:
+            Clock.schedule_once(lambda dt: self.computer_move(), 0)
+
+    def switch_player(self):
         self.selected_piece = None
         self.selected_position = None
         self.current_turn = "black" if self.current_turn == "red" else "red"
@@ -270,9 +276,6 @@ class CheckersBoard(Widget):
             self.turn_label.text = f"{self.current_turn.capitalize()}'s Turn"
             self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
 
-        if self.current_turn != self.player_color:
-            Clock.schedule_once(lambda dt: self.computer_move(), 0)
-
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
@@ -280,12 +283,15 @@ class CheckersBoard(Widget):
 
         print("Computer move ", move)
         if move:
-            for i in range(len(move)-1):
-                from_pos = move[i]
-                to_pos = move[i + 1]
-                self.selected_position = from_pos
-                self.selected_piece = self.cells[from_pos]
-                self.move_piece(to_pos[0], to_pos[1])
+            def do_step(i):
+                if i < len(move) - 1:
+                    from_pos = move[i]
+                    to_pos = move[i + 1]
+                    self.selected_position = from_pos
+                    self.selected_piece = self.cells[from_pos]
+                    self.move_piece(to_pos[0], to_pos[1])
+                    Clock.schedule_once(lambda dt: do_step(i + 1), 3.5)
+            do_step(0)
 
     def get_valid_moves(self, row, col):
         valid_moves = []
