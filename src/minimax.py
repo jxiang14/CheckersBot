@@ -4,7 +4,7 @@ from utils import CheckersState
 RED = 1
 BLACK = -1
 
-def get_best_move(board, player_color, depth=3):
+def get_best_move(state, player_color, move_number, depth=3):
     board = CheckersState(player_color, board)
     best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
     # print("[DEBUG] Best action found:", best_action)

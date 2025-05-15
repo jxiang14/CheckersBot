@@ -15,7 +15,7 @@ import copy
 
 # agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
 # agent.load('checkers_qtable.pkl')  # path to your trained Q-table
-# def get_best_move(board_widget, player_color):
+# def get_best_move(board_widget, player_color, move_number):
 #     """
 #     Translate the Kivy board (board_widget.cells) into a CheckersState,
 #     ask the Q-agent for its action, and return the move tuple.
@@ -47,6 +47,7 @@ class CheckersBoard(Widget):
         self.continue_jump = False
         self.further_captures = []
         self.player_color = None
+        self.computer_move_number = 0
         self.initialize_board()
         # self.create_color_selection_popup()
         Clock.schedule_once(lambda dt: self.create_color_selection_popup(), 0.1)
@@ -91,6 +92,19 @@ class CheckersBoard(Widget):
         layout.add_widget(black_button)
         popup.open()
 
+    def restart_game(self, color, popup):
+        self.choose_color(color, popup)
+        self.current_turn = "black"
+        self.cells = {}
+        self.selected_piece = None
+        self.selected_position = None
+        self.highlight_rect = None
+        self.continue_jump = False
+        self.further_captures = []
+        self.initialize_board()
+        self.repaint()
+        popup.dismiss()
+
     def show_win_popup(self, winner):
         layout = BoxLayout(orientation='vertical', spacing=10, padding=20)
         label = Label(text=f"{winner.capitalize()} wins! Play again?", font_size=20)
@@ -106,21 +120,8 @@ class CheckersBoard(Widget):
             title_align='center'
         )
 
-        def restart_game(color):
-            self.choose_color(color, popup)
-            self.current_turn = "red"  # Always start with red
-            self.cells = {}
-            self.selected_piece = None
-            self.selected_position = None
-            self.highlight_rect = None
-            self.continue_jump = False
-            self.further_captures = []
-            self.initialize_board()
-            self.repaint()
-            popup.dismiss()
-
-        red_button.bind(on_release=lambda *args: restart_game("red"))
-        black_button.bind(on_release=lambda *args: restart_game("black"))
+        red_button.bind(on_release=lambda *args: self.restart_game("red", popup))
+        black_button.bind(on_release=lambda *args: self.restart_game("black", popup))
 
         layout.add_widget(label)
         layout.add_widget(red_button)
@@ -279,7 +280,7 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        move = get_best_move(self, self.current_turn)
+        move = get_best_move(self, self.current_turn, self.computer_move_number)
 
         print("Computer move ", move)
         if move:
@@ -290,7 +291,7 @@ class CheckersBoard(Widget):
                     self.selected_position = from_pos
                     self.selected_piece = self.cells[from_pos]
                     self.move_piece(to_pos[0], to_pos[1])
-                    Clock.schedule_once(lambda dt: do_step(i + 1), 3.5)
+                    Clock.schedule_once(lambda dt: do_step(i + 1), 1.5)
             do_step(0)
 
     def get_valid_moves(self, row, col):
@@ -344,11 +345,14 @@ class CheckersBoard(Widget):
             color = self.cells[(row, col)][0]
             if color == opponent_color:
                 has_pieces = True
+            if color == self.current_turn:
                 if len(self.get_valid_moves(row, col)) > 0:
                     has_moves = True
-                    break
 
-        if not has_pieces or not has_moves:
+        if not has_pieces:
             self.show_win_popup(winner=self.current_turn)
+            return True
+        if not has_moves:
+            self.show_win_popup(winner=opponent_color)
             return True
         return False
