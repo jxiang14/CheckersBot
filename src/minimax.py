@@ -8,7 +8,6 @@ BLACK = -1
 def get_best_move(board, player_color, moves_made, depth=3):
     board = CheckersState(player_color, board)
     best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
-    # time.sleep(0.5)
     # print("[DEBUG] Best action found:", best_action)
     if best_action is None:
         # print("[DEBUG] No best action found, returning None")
