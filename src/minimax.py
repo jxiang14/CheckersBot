@@ -1,16 +1,18 @@
 import copy
 from checkers_state import CheckersState
+import time
 
 RED = 1
 BLACK = -1
 
-def get_best_move(state, player_color, move_number, depth=3):
+def get_best_move(board, player_color, moves_made, depth=3):
     board = CheckersState(player_color, board)
     best_action, _ = minimaxAction(board, depth, player_color, float('-inf'), float('inf'), True)
+    # time.sleep(0.5)
     # print("[DEBUG] Best action found:", best_action)
     if best_action is None:
         # print("[DEBUG] No best action found, returning None")
-        return (None, None)
+        return None
     return best_action
 
 def minimaxAction(state:CheckersState, depth, player_color, alpha, beta, maximizing_player):
@@ -32,11 +34,11 @@ def minimaxAction(state:CheckersState, depth, player_color, alpha, beta, maximiz
             if depth == 1:
                 # print("depth is currently ", depth)
                 eval = evaluate_move(new_state, move, player_color)
-                print(f"Evaluating move {move} with eval_move: {eval}")
+                # print(f"Evaluating move {move} with eval_move: {eval}")
             else:
                 # print("depth is currently ", depth)
                 _, eval = minimaxAction(new_state, depth - 1, player_color, alpha, beta, False)
-                print(f"Evaluating move {move} with minimax: {eval}")
+                # print(f"Evaluating move {move} with minimax: {eval}")
             
             if eval > max_eval:
                 max_eval = eval
@@ -134,7 +136,7 @@ def evaluate_move(state, move, player_color):
     if state.can_be_at_edge(move):
         score += 0.5
     score += evaluate(state, player_color)
-    print("player color: ", player_color)
+    # print("player color: ", player_color)
     # POSSIBLE HEURISTICS 
     # add backed up (more safe)
     # add new exposures (less safe)

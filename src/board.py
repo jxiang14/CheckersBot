@@ -8,6 +8,7 @@ from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
 from best_move import get_best_move
+import minimax
 import time
 import copy
 
@@ -15,7 +16,7 @@ import copy
 
 # agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
 # agent.load('checkers_qtable.pkl')  # path to your trained Q-table
-# def get_best_move(board_widget, player_color, move_number):
+# def get_best_move(board_widget, player_color, moves_made):
 #     """
 #     Translate the Kivy board (board_widget.cells) into a CheckersState,
 #     ask the Q-agent for its action, and return the move tuple.
@@ -47,7 +48,8 @@ class CheckersBoard(Widget):
         self.continue_jump = False
         self.further_captures = []
         self.player_color = None
-        self.computer_move_number = 0
+        self.computers_only = False
+        self.moves_made = 0
         self.initialize_board()
         # self.create_color_selection_popup()
         Clock.schedule_once(lambda dt: self.create_color_selection_popup(), 0.1)
@@ -106,6 +108,17 @@ class CheckersBoard(Widget):
         popup.dismiss()
 
     def show_win_popup(self, winner):
+        print("Moves made: ", self.moves_made)
+        winner_count = 0
+        loser_count = 0
+        for (row, col) in self.cells.keys():
+            color = self.cells[(row, col)][0]
+            if color == winner:
+                winner_count += 1
+            else:
+                loser_count += 1
+        print("Winner # pieces: ", winner_count)
+        print("Loser # pieces: ", loser_count)
         layout = BoxLayout(orientation='vertical', spacing=10, padding=20)
         label = Label(text=f"{winner.capitalize()} wins! Play again?", font_size=20)
 
@@ -161,9 +174,6 @@ class CheckersBoard(Widget):
         with self.canvas:
             Color(0.70, 0.18, 0, 1) if color == "red" else Color(0, 0, 0, 1)
             Ellipse(pos=(x + 10, y + 10), size=(self.cell_size - 20, self.cell_size - 20))
-            # if king:
-            #     Color(1, 1, 0, 1)  # Yellow outline
-            #     Line(circle=(x + self.cell_size / 2, y + self.cell_size / 2, (self.cell_size - 20) / 2), width=2)
             if king:
                 crown_size = self.cell_size / 2
                 Color(1, 0.84, 0, 1)
@@ -177,8 +187,10 @@ class CheckersBoard(Widget):
         self.player_color = color
     
     def on_touch_down(self, touch):
-        print("touch down ", self.player_color)
         if not self.player_color:
+            return
+        if self.computers_only:
+            self.run_computers_against_each_other()
             return
         col = int((touch.x - self.pos[0]) / self.cell_size)
         row = int((touch.y - self.pos[1]) / self.cell_size)
@@ -187,24 +199,16 @@ class CheckersBoard(Widget):
                 self.move_piece(row, col)
             return
         if (row, col) in self.cells:
-            # if self.selected_position is not None:
-            #     old_row, old_col = self.selected_position
-            # else:
-            #     old_row, old_col = None, None
             piece_color, _ = self.cells[(row, col)]
-            # Change back for real game
             if piece_color == self.current_turn and piece_color == self.player_color:
-            # if piece_color == self.current_turn:
                 self.selected_piece = self.cells[(row, col)]
                 self.selected_position = (row, col)
                 self.remove_highlight()
                 self.highlight_selected(row, col)
-                print("highlighting")
         elif self.selected_piece:
             valid_moves = self.get_all_valid_moves(self.current_turn)
             if (self.selected_position,(row, col)) in valid_moves:
                 self.move_piece(row, col)
-                print("highlighting")
 
     def highlight_selected(self, row, col):
         self.remove_highlight()
@@ -219,6 +223,7 @@ class CheckersBoard(Widget):
             self.highlight_rect = None
     
     def move_piece(self, row, col):
+        self.moves_made += 1
         old_row, old_col = self.selected_position
         just_made_king = False
         if (row, col) not in self.cells:
@@ -230,7 +235,6 @@ class CheckersBoard(Widget):
 
             self.cells[(row, col)] = (color, is_king)
             self.selected_piece = (color, is_king)
-            # print("moving piece from: ", old_row, " ", old_col)
             del self.cells[old_row, old_col]
         
         was_capture = abs(row - old_row) == 2
@@ -257,13 +261,12 @@ class CheckersBoard(Widget):
         else:
             self.continue_jump = False
         
+        self.switch_player()
+        
         if self.check_win_condition():
-            # Return if game over
             return
 
-        self.switch_player()
-
-        if self.current_turn != self.player_color:
+        if self.current_turn != self.player_color and not self.computers_only:
             Clock.schedule_once(lambda dt: self.computer_move(), 0)
 
     def switch_player(self):
@@ -277,12 +280,28 @@ class CheckersBoard(Widget):
             self.turn_label.text = f"{self.current_turn.capitalize()}'s Turn"
             self.turn_label.color = (1, 0, 0, 1) if self.current_turn == "red" else (0, 0, 0, 1)
 
-    def computer_move(self):
-        # from_pos is a tuple (row, col) of the piece to move
-        # to_pos is a tuple (row, col) of the destination
-        move = get_best_move(self, self.current_turn, self.computer_move_number)
+    def run_computers_against_each_other(self):
+        def next_move(dt):
+            if self.check_win_condition():
+                return  # Game over, stop scheduling moves
 
-        print("Computer move ", move)
+            if self.current_turn == "red":
+                print("Red's turn")
+                self.computer_move(get_best_move)
+                Clock.schedule_once(next_move, 1.5)
+            else:
+                print("Black's turn")
+                self.computer_move(minimax.get_best_move)
+                Clock.schedule_once(next_move, 1.5)
+            print("Moves made: ", self.moves_made)
+
+        Clock.schedule_once(next_move, 0)
+
+    def computer_move(self, best_move_finder=None):
+        if best_move_finder is None:
+            best_move_finder = get_best_move
+        move = best_move_finder(self, self.current_turn, moves_made=self.moves_made)
+
         if move:
             def do_step(i):
                 if i < len(move) - 1:
@@ -291,7 +310,7 @@ class CheckersBoard(Widget):
                     self.selected_position = from_pos
                     self.selected_piece = self.cells[from_pos]
                     self.move_piece(to_pos[0], to_pos[1])
-                    Clock.schedule_once(lambda dt: do_step(i + 1), 1.5)
+                    Clock.schedule_once(lambda dt: do_step(i + 1), 0.1)
             do_step(0)
 
     def get_valid_moves(self, row, col):
