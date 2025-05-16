@@ -74,8 +74,5 @@ class MCTS:
         """
         if not self.root.children:
             return None
-        for child in self.root.children:
-            for grandchild in child.children:
-                print(f"Child: {child.move}, Grandchild: {grandchild.move}, Wins: {grandchild.wins}, Visits: {grandchild.visits}, Win rate: {grandchild.wins / grandchild.visits:.2f}")
         best_child = max(self.root.children, key=lambda c: c.visits)
         return best_child.move

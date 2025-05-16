@@ -129,10 +129,6 @@ class CheckersState:
         """
         valid_moves = []
         pieces = self.red_pieces if player == RED else self.black_pieces
-        # if self.must_continue_from:
-        #     # Only return capturing moves from the same piece
-        #     moves = self.get_valid_moves(*self.must_continue_from)
-        #     return [m for m in moves if abs(m[1][0] - m[0][0]) > 1]
         for piece in pieces:
             row, col = piece
             valid_moves.extend(self.get_valid_moves(row, col))
@@ -171,7 +167,7 @@ class CheckersState:
                 else:
                     self.red_pieces.remove((middle_row, middle_col))
                 self.board[middle_row][middle_col] = 0
-        final_row, final_col = move[-1]
+        final_row, _ = move[-1]
         if (final_row == BOARD_SIZE - 1 and self.current_player == RED) or (final_row == 0 and self.current_player == BLACK):
             self.board[new_row][new_col] = (self.current_player, True)
         self.current_player = BLACK if self.current_player == RED else RED
