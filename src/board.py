@@ -7,30 +7,29 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.clock import Clock
-from best_move import get_best_move
+# from best_move import get_best_move
 import time
 import copy
-from qlearning import QLearningAgent
+from qlearning import QAgent
 from utils import CheckersState
-
+from deppqlearning import DQNAgent, state_to_tensor, action_to_tensor
 # from qlearning import QLearningAgent, CheckersState, RED, BLACK
 
-agent = QLearningAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
-agent.load('checkers_weights.pkl')  # path to your trained Q-table
-def get_best_move(board_widget, player_color):
-    """
-    Translate the Kivy board (board_widget.cells) into a CheckersState,
-    ask the Q-agent for its action, and return the move tuple.
-    """
-    # Build a CheckersState from the current widget
-    # we rely on the board_from_kivy_board constructor path:
-    state = CheckersState(player_color, board=board_widget)
-    # Ask the agent for its preferred move
-    move = agent.choose_action(state)
-    if move is None:
-        return (None, None)
-    # move is ((r_from, c_from), (r_to, c_to))
-    return move
+# agent = QAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
+# agent.load_q_table('q_table.pkl')
+# def get_best_move(board_widget, player_color):
+#     """
+#     Translate the Kivy board (board_widget.cells) into a CheckersState,
+#     ask the Q-agent for its action, and return the move tuple.
+#     """
+    
+#     state = CheckersState(player_color, board=board_widget)
+#     move = agent.choose_action(state, state.get_all_valid_moves(state.current_player))
+#     if move is None:
+#         return (None, None)
+#     return move
+deppQ = DQNAgent(state_to_tensor, action_to_tensor)
+deppQ.load("checkers_dqn.pth")
 
 BOARD_SIZE = 8
 
@@ -281,7 +280,8 @@ class CheckersBoard(Widget):
     def computer_move(self):
         # from_pos is a tuple (row, col) of the piece to move
         # to_pos is a tuple (row, col) of the destination
-        move = get_best_move(self, self.current_turn)
+        # move = get_best_move(self, self.current_turn)
+        move = deppQ.best_move(CheckersState(self.current_turn, board=self))
 
         print("Computer move ", move)
         if move:
