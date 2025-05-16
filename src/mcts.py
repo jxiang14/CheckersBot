@@ -5,11 +5,11 @@ RED = 1
 BLACK = -1
 
 class MCTS:
-    def __init__(self, game_state, move_number, iteration_limit=1500):
+    def __init__(self, game_state, moves_made, iteration_limit=1500):
         self.root = Node(game_state)
         self.iteration_limit = iteration_limit
         self.epsilon = 1.0
-        self.move_number = move_number
+        self.moves_made = moves_made
 
     def run(self):
         """
@@ -48,14 +48,15 @@ class MCTS:
         """
         state = game_state.clone()
         iterations = 0
-        while not state.is_terminal() and iterations < 200 - 2 * self.move_number:
+        if self.moves_made > 150:
+            max_depth = 40
+        else:
+            max_depth = 200
+        while not state.is_terminal() and iterations < max_depth:
             moves = state.get_all_valid_moves(state.current_player)
             if not moves:
                 break
-            if random.random() < self.epsilon:
-                move = random.choice(moves)
-            else:
-                move = self._evaluate_moves_heuristically(moves, state)
+            move = random.choice(moves)
             state = state.make_move(move)
             iterations += 1
 

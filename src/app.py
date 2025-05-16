@@ -31,7 +31,7 @@ class CheckersApp(App):
         self.board = CheckersBoard(size_hint=(1, 1))  # Adjust size_hint as needed
         board_anchor.add_widget(self.board)
 
-        self.turn_label = TurnLabel(text="Red's Turn", font_size=36, color=(1, 0, 0, 1))
+        self.turn_label = TurnLabel(text="Black's Turn", font_size=36, color=(0, 0, 0, 1))
         self.turn_label.size_hint = (0.2, 1)
         layout.add_widget(board_anchor)
         layout.add_widget(self.turn_label)
