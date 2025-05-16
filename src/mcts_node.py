@@ -21,11 +21,15 @@ class Node:
         """
         Select the child with the highest UCT value.
         """
-        choices_weights = [
-            (child.wins / child.visits) + c_param * math.sqrt(math.log(self.visits) / child.visits)
-            for child in self.children
-        ]
-        return self.children[choices_weights.index(max(choices_weights))]
+        max_uct = float('-inf')
+        max_index = -1
+        for i in range(len(self.children)):
+            child = self.children[i]
+            if (child.wins / child.visits + c_param * math.sqrt(math.log(self.visits) / child.visits)) > max_uct:
+                max_uct = child.wins / child.visits + c_param * math.sqrt(math.log(self.visits) / child.visits)
+                max_index = i
+
+        return self.children[max_index]
 
     def expand(self):
         """
