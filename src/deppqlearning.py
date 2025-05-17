@@ -40,9 +40,9 @@ class ReplayBuffer:
     def __len__(self):
         return len(self.buffer)
 
-class QNetwork(nn.Module):
+class QLearningNetwork(nn.Module):
     def __init__(self, input_dim=384, hidden_dim=512):
-        super(QNetwork, self).__init__()
+        super(QLearningNetwork, self).__init__()
         self.fc = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.ReLU(),
@@ -56,10 +56,10 @@ class QNetwork(nn.Module):
         flat = x.view(batch_size, -1)
         return self.fc(flat).squeeze(-1)
 
-class DQNAgent:
+class DeepQNetwork(nn.Module):
     def __init__(self, state_encoder, action_encoder,
                  epsilon_start=1.0, epsilon_final=0.01, epsilon_decay=1e-5):
-        self.q_net = QNetwork().to(device)
+        self.q_net = QLearningNetwork().to(device)
         self.target_net = copy.deepcopy(self.q_net)
         self.optimizer = optim.Adam(self.q_net.parameters(), lr=learning_rate)
         self.replay_buffer = ReplayBuffer()
@@ -179,6 +179,6 @@ def train(agent, num_episodes=10000):
         print(f"Episode {ep}, epsilon {agent.epsilon:.3f}")
 
 if __name__ == "__main__":
-    agent = DQNAgent(state_to_tensor, action_to_tensor)
+    agent = DeepQNetwork(state_to_tensor, action_to_tensor)
     train(agent)
     agent.save("checkers_dqn.pth")

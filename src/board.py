@@ -12,8 +12,8 @@ import time
 import copy
 from qlearning import QAgent
 from utils import CheckersState
-from deppqlearning import DQNAgent, state_to_tensor, action_to_tensor
-# from qlearning import QLearningAgent, CheckersState, RED, BLACK
+from deppqlearning import DeepQNetwork, state_to_tensor, action_to_tensor
+# from qlearning import QLearning, CheckersState, RED, BLACK
 
 # agent = QAgent(alpha=0.1, gamma=0.95, epsilon=0.0)
 # agent.load_q_table('q_table.pkl')
@@ -28,7 +28,7 @@ from deppqlearning import DQNAgent, state_to_tensor, action_to_tensor
 #     if move is None:
 #         return (None, None)
 #     return move
-deppQ = DQNAgent(state_to_tensor, action_to_tensor)
+deppQ = DeepQNetwork(state_to_tensor, action_to_tensor)
 deppQ.load("checkers_dqn.pth")
 
 BOARD_SIZE = 8

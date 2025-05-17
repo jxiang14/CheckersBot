@@ -4,7 +4,7 @@ import numpy as np
 from collections import defaultdict
 from utils import CheckersState
 
-class QAgent:
+class QLearning:
     def __init__(
         self,
         alpha=0.1,
@@ -90,12 +90,12 @@ class QAgent:
         return tuple(tuple(step) for step in action)
 
 
-def train(agent: QAgent, episodes: int = 50000, save_path='q_table.pkl'):
+def train(agent: QLearning, episodes: int = 50000, save_path='q_table.pkl'):
     for ep in range(episodes):
         state = CheckersState('red')
         done = False
         while not done:
-            s_key = QAgent._state_to_key(state)
+            s_key = QLearning._state_to_key(state)
             legal = state.get_all_valid_moves(state.current_player)
             action = agent.choose_action(s_key, legal)
             if action is None:
@@ -106,7 +106,7 @@ def train(agent: QAgent, episodes: int = 50000, save_path='q_table.pkl'):
             if done:
                 winner = next_state.get_winner()
                 reward = 1 if winner == state.current_player else -1
-            next_key = QAgent._state_to_key(next_state)
+            next_key = QLearning._state_to_key(next_state)
             next_legal = next_state.get_all_valid_moves(next_state.current_player)
             agent.update(s_key, action, reward, next_key, next_legal)
             state = next_state
@@ -124,5 +124,5 @@ if __name__ == '__main__':
     parser.add_argument('--save', type=str, default='q_table.pkl', help='Path to save Q-table')
     args = parser.parse_args()
 
-    agent = QAgent(q_table_path=args.load)
+    agent = QLearning(q_table_path=args.load)
     train(agent, episodes=args.episodes, save_path=args.save)
