@@ -15,6 +15,6 @@ from mcts import MCTS
 
 def get_best_move(board, player_color, moves_made):
     game_state = CheckersState(player_color, board)
-    mcts = MCTS(game_state, moves_made, iteration_limit=1500)
+    mcts = MCTS(game_state, moves_made, iteration_limit=1000)
     best_move = mcts.run()
     return best_move
